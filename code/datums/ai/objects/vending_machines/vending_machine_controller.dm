@@ -1,5 +1,6 @@
 ///AI controller for vending machine gone rogue, Don't try using this on anything else, it wont work.
 /datum/ai_controller/vending_machine
+	movement_delay = 0.4 SECONDS
 	blackboard = list(BB_VENDING_CURRENT_TARGET = null,
 	BB_VENDING_TILT_COOLDOWN = 0,
 	BB_VENDING_UNTILT_COOLDOWN = 0,
@@ -39,7 +40,7 @@
 		if(blackboard[BB_VENDING_TILT_COOLDOWN] > world.time)
 			return
 		for(var/mob/living/living_target in oview(vision_range, pawn))
-			if(living_target.stat) //They're already fucked up
+			if(living_target.stat || living_target.incorporeal_move) //They're already fucked up or incorporeal
 				continue
 			current_movement_target = living_target
 			blackboard[BB_VENDING_CURRENT_TARGET] = living_target

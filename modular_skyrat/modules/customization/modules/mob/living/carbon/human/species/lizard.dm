@@ -2,7 +2,10 @@
 	mutant_bodyparts = list()
 	species_traits = list(MUTCOLORS,EYECOLOR,LIPS,HAS_FLESH,HAS_BONE,HAIR,FACEHAIR)
 	default_mutant_bodyparts = list("tail" = ACC_RANDOM, "snout" = ACC_RANDOM, "spines" = ACC_RANDOM, "frills" = ACC_RANDOM, "horns" = ACC_RANDOM, "body_markings" = ACC_RANDOM, "legs" = "Digitigrade Legs", "taur" = "None", "wings" = "None")
-	limbs_icon = 'modular_skyrat/modules/customization/icons/mob/species/lizard_parts_greyscale.dmi'
+	limbs_icon = 'modular_skyrat/master_files/icons/mob/species/lizard_parts_greyscale.dmi'
+	cultures = list(CULTURES_EXOTIC, CULTURES_LIZARD, CULTURES_HUMAN)
+	learnable_languages = list(/datum/language/common, /datum/language/draconic)
+	payday_modifier = 0.75
 
 /datum/species/lizard/get_random_features()
 	var/list/returned = MANDATORY_FEATURE_LIST
@@ -28,3 +31,7 @@
 /datum/species/lizard/ashwalker
 	species_traits = list(MUTCOLORS,EYECOLOR,LIPS,DIGITIGRADE,HAS_FLESH,HAS_BONE,NO_UNDERWEAR)
 	always_customizable = TRUE
+	cultures = list(/datum/cultural_info/culture/lavaland)
+	locations = list(/datum/cultural_info/location/stateless)
+	factions = list(/datum/cultural_info/faction/none)
+	learnable_languages = list(/datum/language/draconic)

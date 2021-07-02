@@ -1,3 +1,5 @@
+//SKYRAT EDIT REMOVAL BEGIN: Removes Spread Infestation due to NRP usage and abuse by changelings
+/*
 /datum/action/changeling/spiders
 	name = "Spread Infestation"
 	desc = "Our form divides, creating a cluster of eggs which will grow into a deadly arachnid. Costs 45 chemicals."
@@ -10,5 +12,7 @@
 //Makes a spider egg cluster. Allows you enable further general havok by introducing spiders to the station.
 /datum/action/changeling/spiders/sting_action(mob/user)
 	..()
-	new /obj/structure/spider/eggcluster/bloody(user.loc)
+	new /obj/effect/mob_spawn/spider/bloody(user.loc)
 	return TRUE
+*/
+//SKYRAT EDIT REMOVAL END

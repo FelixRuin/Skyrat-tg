@@ -6,7 +6,6 @@
 	///Used for topic calls. Just because you have a HUD display doesn't mean you should be able to interact with stuff.
 	var/hud_trait = null
 
-
 /obj/item/clothing/glasses/hud/equipped(mob/living/carbon/human/user, slot)
 	..()
 	if(slot != ITEM_SLOT_EYES)
@@ -38,7 +37,7 @@
 	if(obj_flags & EMAGGED)
 		return
 	obj_flags |= EMAGGED
-	to_chat(user, "<span class='warning'>PZZTTPFFFT</span>")
+	to_chat(user, span_warning("PZZTTPFFFT"))
 	desc = "[desc] The display is flickering slightly."
 
 /obj/item/clothing/glasses/hud/health

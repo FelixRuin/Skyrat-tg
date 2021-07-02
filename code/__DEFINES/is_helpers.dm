@@ -2,6 +2,9 @@
 
 #define in_range(source, user) (get_dist(source, user) <= 1 && (get_step(source, 0)?:z) == (get_step(user, 0)?:z))
 
+/// Within given range, but not counting z-levels
+#define IN_GIVEN_RANGE(source, other, given_range) (get_dist(source, other) <= given_range && (get_step(source, 0)?:z) == (get_step(other, 0)?:z))
+
 #define isatom(A) (isloc(A))
 
 #define isweakref(D) (istype(D, /datum/weakref))
@@ -75,6 +78,7 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 #define isvampire(A) (is_species(A,/datum/species/vampire))
 #define isdullahan(A) (is_species(A, /datum/species/dullahan))
 #define ismonkey(A) (is_species(A, /datum/species/monkey))
+#define isandroid(A) (is_species(A, /datum/species/android))
 
 //more carbon mobs
 
@@ -152,6 +156,8 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 
 #define isovermind(A) (istype(A, /mob/camera/blob))
 
+#define issentientdisease(A) (istype(A, /mob/camera/disease))
+
 #define iscameramob(A) (istype(A, /mob/camera))
 
 #define isaicamera(A) (istype(A, /mob/camera/ai_eye))
@@ -196,6 +202,8 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 #define isprojectile(A) (istype(A, /obj/projectile))
 
 #define isgun(A) (istype(A, /obj/item/gun))
+
+#define is_reagent_container(O) (istype(O, /obj/item/reagent_containers))
 
 //Assemblies
 #define isassembly(O) (istype(O, /obj/item/assembly))

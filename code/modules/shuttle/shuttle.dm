@@ -148,7 +148,7 @@
 //Debug proc used to highlight bounding area
 /obj/docking_port/proc/highlight(_color = "#f00")
 	invisibility = 0
-	layer = GHOST_LAYER
+	plane = GHOST_PLANE
 	var/list/L = return_coords()
 	var/turf/T0 = locate(L[1],L[2],z)
 	var/turf/T1 = locate(L[3],L[4],z)
@@ -231,7 +231,7 @@
 
 	if(mapload)
 		for(var/turf/T in return_turfs())
-			T.flags_1 |= NO_RUINS_1
+			T.turf_flags |= NO_RUINS
 
 	#ifdef DOCKING_PORT_HIGHLIGHT
 	highlight("#f00")
@@ -365,6 +365,11 @@
 	var/can_move_docking_ports = FALSE
 	var/list/hidden_turfs = list()
 
+	///Can this shuttle be called while it's in transit? (Prevents people recalling it once it's already enroute)
+	var/can_be_called_in_transit = TRUE //SKYRAT EDIT ADDITION
+
+	var/admin_forced = FALSE //SKYRAT EDIT ADDITION
+
 /obj/docking_port/mobile/register(replace = FALSE)
 	. = ..()
 	if(!id)
@@ -396,7 +401,7 @@
 		unregister()
 		destination = null
 		previous = null
-		QDEL_NULL(assigned_transit)		//don't need it where we're goin'!
+		QDEL_NULL(assigned_transit) //don't need it where we're goin'!
 		shuttle_areas = null
 		remove_ripples()
 	. = ..()
@@ -493,6 +498,7 @@
 /obj/docking_port/mobile/proc/transit_failure()
 	message_admins("Shuttle [src] repeatedly failed to create transit zone.")
 
+/* SKYRAT EDIT REMOVAL - MOVED TO MODULAR
 //call the shuttle to destination S
 /obj/docking_port/mobile/proc/request(obj/docking_port/stationary/S)
 	if(!check_dock(S))
@@ -522,6 +528,8 @@
 			mode = SHUTTLE_IGNITING
 			setTimer(ignitionTime)
 
+*/ //SKYRAT EDIT END
+
 //recall the shuttle to where it was previously
 /obj/docking_port/mobile/proc/cancel()
 	if(mode != SHUTTLE_CALL)
@@ -533,7 +541,7 @@
 	mode = SHUTTLE_RECALL
 
 /obj/docking_port/mobile/proc/enterTransit()
-	if((SSshuttle.lockdown && is_station_level(z)) || !canMove())	//emp went off, no escape
+	if((SSshuttle.lockdown && is_station_level(z)) || !canMove()) //emp went off, no escape
 		mode = SHUTTLE_IDLE
 		return
 	previous = null
@@ -595,7 +603,7 @@
 		var/turf/T = t
 		for(var/mob/living/M in T.GetAllContents())
 			// If they have a mind and they're not in the brig, they escaped
-			if(M.mind && !istype(t, /turf/open/floor/iron/shuttle/red) && !istype(t, /turf/open/floor/mineral/plastitanium/red/brig))
+			if(M.mind && !istype(t, /turf/open/floor/mineral/plastitanium/red/brig))
 				M.mind.force_escaped = TRUE
 			// Ghostize them and put them in nullspace stasis (for stat & possession checks)
 			M.notransform = TRUE
@@ -672,6 +680,7 @@
 				return
 			if(rechargeTime)
 				mode = SHUTTLE_RECHARGING
+				unbolt_all_doors() //SKYRAT EDIT ADDITION
 				setTimer(rechargeTime)
 				return
 		if(SHUTTLE_RECALL)
@@ -688,6 +697,8 @@
 				enterTransit()
 				return
 
+	admin_forced = FALSE //SKYRAT EDIT ADDITION
+	unbolt_all_doors() //SKYRAT EDIT ADDITION
 	mode = SHUTTLE_IDLE
 	timer = 0
 	destination = null
@@ -698,6 +709,8 @@
 			var/tl = timeLeft(1)
 			if(tl <= SHUTTLE_RIPPLE_TIME)
 				create_ripples(destination, tl)
+				play_engine_sound(src, FALSE) //SKYRAT EDIT ADDITION
+				play_engine_sound(destination, FALSE) //SKYRAT EDIT ADDITION
 
 	var/obj/docking_port/stationary/S0 = get_docked()
 	if(istype(S0, /obj/docking_port/stationary/transit) && timeLeft(1) <= PARALLAX_LOOP_TIME)
@@ -879,8 +892,16 @@
 	var/range = (engine_coeff * max(width, height))
 	var/long_range = range * 2.5
 	var/atom/distant_source
-	if(engine_list[1])
-		distant_source = engine_list[1]
+	var/list/engines = list()
+	for(var/datum/weakref/engine in engine_list)
+		var/obj/structure/shuttle/engine/real_engine = engine.resolve()
+		if(!real_engine)
+			engine_list -= engine
+			continue
+		engines += real_engine
+
+	if(engines[1])
+		distant_source = engines[1]
 	else
 		for(var/A in areas)
 			distant_source = locate(/obj/machinery/door) in A
@@ -894,11 +915,11 @@
 				M.playsound_local(distant_source, "sound/runtime/hyperspace/[selected_sound]_distance.ogg", 100)
 			else if(dist_far <= range)
 				var/source
-				if(engine_list.len == 0)
+				if(engines.len == 0)
 					source = distant_source
 				else
 					var/closest_dist = 10000
-					for(var/obj/O in engine_list)
+					for(var/obj/O in engines)
 						var/dist_near = get_dist(M, O)
 						if(dist_near < closest_dist)
 							source = O
@@ -923,7 +944,7 @@
 		var/area/shuttle/areaInstance = thing
 		for(var/obj/structure/shuttle/engine/E in areaInstance.contents)
 			if(!QDELETED(E))
-				engine_list += E
+				engine_list += WEAKREF(E)
 				. += E.engine_power
 
 // Double initial engines to get to 0.5 minimum

@@ -1,6 +1,10 @@
+/// The time since the last job opening was created
+GLOBAL_VAR_INIT(time_last_changed_position, 0)
+
 /datum/computer_file/program/job_management
 	filename = "plexagoncore"
 	filedesc = "Plexagon HR Core"
+	category = PROGRAM_CATEGORY_CREW
 	program_icon_state = "id"
 	extended_desc = "Program for viewing and changing job slot avalibility."
 	transfer_access = ACCESS_HEADS
@@ -20,7 +24,14 @@
 		"Head of Security",
 		"Chief Engineer",
 		"Research Director",
-		"Chief Medical Officer")
+		"Security Sergeant", //SKYRAT EDIT CHANGE START
+		"Security Medic",
+		"Clown",
+		"Blueshield",
+		"Nanotrasen Representative",//SKYRAT EDIT END
+		"Chief Medical Officer",
+		"Quartermaster",
+		"Shuttle Pilot")
 
 	//The scaling factor of max total positions in relation to the total amount of people on board the station in %
 	var/max_relative_positions = 30 //30%: Seems reasonable, limit of 6 @ 20 players
@@ -34,7 +45,7 @@
 	change_position_cooldown = CONFIG_GET(number/id_console_jobslot_delay)
 
 /datum/computer_file/program/job_management/proc/can_open_job(datum/job/job)
-	if(!(job?.title in blacklisted))
+	if(!(job?.title in blacklisted) && !job?.veteran_only) //SKRYAT EDIT CHANGE
 		if((job.total_positions <= length(GLOB.player_list) * (max_relative_positions / 100)))
 			var/delta = (world.time / 10) - GLOB.time_last_changed_position
 			if((change_position_cooldown < delta) || (opened_positions[job.title] < 0))
@@ -42,7 +53,7 @@
 	return FALSE
 
 /datum/computer_file/program/job_management/proc/can_close_job(datum/job/job)
-	if(!(job?.title in blacklisted))
+	if(!(job?.title in blacklisted) && !job?.veteran_only) //SKRYAT EDIT CHANGE
 		if(job.total_positions > length(GLOB.player_list) * (max_relative_positions / 100))
 			var/delta = (world.time / 10) - GLOB.time_last_changed_position
 			if((change_position_cooldown < delta) || (opened_positions[job.title] > 0))
@@ -70,6 +81,7 @@
 				GLOB.time_last_changed_position = world.time / 10
 			j.total_positions++
 			opened_positions[edit_job_target]++
+			log_game("[key_name(usr)] opened a [j.title] job position, for a total of [j.total_positions] open job slots.")
 			playsound(computer, 'sound/machines/terminal_prompt_confirm.ogg', 50, FALSE)
 			return TRUE
 		if("PRG_close_job")
@@ -82,6 +94,7 @@
 				GLOB.time_last_changed_position = world.time / 10
 			j.total_positions--
 			opened_positions[edit_job_target]--
+			log_game("[key_name(usr)] closed a [j.title] job position, leaving [j.total_positions] open job slots.")
 			playsound(computer, 'sound/machines/terminal_prompt_confirm.ogg', 50, FALSE)
 			return TRUE
 		if("PRG_priority")

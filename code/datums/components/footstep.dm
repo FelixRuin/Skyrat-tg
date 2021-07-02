@@ -40,6 +40,10 @@
 			footstep_sounds = 'sound/effects/bang.ogg'
 			RegisterSignal(parent, list(COMSIG_MOVABLE_MOVED), .proc/play_simplestep_machine) //Note that this doesn't get called for humans.
 			return
+		if(FOOTSTEP_OBJ_ROBOT)
+			footstep_sounds = 'sound/effects/tank_treads.ogg'
+			RegisterSignal(parent, list(COMSIG_MOVABLE_MOVED), .proc/play_simplestep_machine) //Note that this doesn't get called for humans.
+			return
 	RegisterSignal(parent, list(COMSIG_MOVABLE_MOVED), .proc/play_simplestep) //Note that this doesn't get called for humans.
 
 ///Prepares a footstep. Determines if it should get played. Returns the turf it should get played on. Note that it is always a /turf/open
@@ -103,6 +107,14 @@
 
 	if(HAS_TRAIT(parent, TRAIT_SILENT_FOOTSTEPS))
 		return
+
+	var/volume_multiplier = 1
+	var/range_adjustment = 0
+
+	if(HAS_TRAIT(parent, TRAIT_LIGHT_STEP))
+		volume_multiplier = 0.6
+		range_adjustment = -2
+
 	var/turf/open/T = prepare_step()
 	if(!T)
 		return
@@ -111,17 +123,17 @@
 	if ((H.wear_suit?.body_parts_covered | H.w_uniform?.body_parts_covered | H.shoes?.body_parts_covered) & FEET)
 		// we are wearing shoes
 		playsound(T, pick(GLOB.footstep[T.footstep][1]),
-			GLOB.footstep[T.footstep][2] * volume,
+			GLOB.footstep[T.footstep][2] * volume * volume_multiplier,
 			TRUE,
-			GLOB.footstep[T.footstep][3] + e_range, falloff_distance = 1, vary = sound_vary)
+			GLOB.footstep[T.footstep][3] + e_range + range_adjustment, falloff_distance = 1, vary = sound_vary)
 	else
 		if(H.dna.species.special_step_sounds)
 			playsound(T, pick(H.dna.species.special_step_sounds), 50, TRUE, falloff_distance = 1, vary = sound_vary)
 		else
 			playsound(T, pick(GLOB.barefootstep[T.barefootstep][1]),
-				GLOB.barefootstep[T.barefootstep][2] * volume,
+				GLOB.barefootstep[T.barefootstep][2] * volume * volume_multiplier,
 				TRUE,
-				GLOB.barefootstep[T.barefootstep][3] + e_range, falloff_distance = 1, vary = sound_vary)
+				GLOB.barefootstep[T.barefootstep][3] + e_range + range_adjustment, falloff_distance = 1, vary = sound_vary)
 
 
 ///Prepares a footstep for machine walking

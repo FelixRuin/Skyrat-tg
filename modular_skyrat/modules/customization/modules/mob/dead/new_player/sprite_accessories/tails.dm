@@ -2,7 +2,7 @@
 	key = "tail"
 	generic = "Tail"
 	organ_type = /obj/item/organ/tail
-	icon = 'modular_skyrat/modules/customization/icons/mob/mutant_bodyparts.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/mutant_bodyparts.dmi'
 	special_render_case = TRUE
 	special_icon_case = TRUE
 	special_colorize = TRUE
@@ -28,7 +28,7 @@
 	if(passed_state == "[general_type]_hardsuit") //Guarantees we're wearing a hardsuit, skip checks
 		var/obj/item/clothing/suit/space/hardsuit/HS = H.wear_suit
 		if(HS.hardsuit_tail_colors)
-			returned = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/tails_hardsuit.dmi'
+			returned = 'modular_skyrat/master_files/icons/mob/sprite_accessory/tails_hardsuit.dmi'
 	return returned
 
 /datum/sprite_accessory/tails/get_special_render_colour(mob/living/carbon/human/H, passed_state)
@@ -47,19 +47,19 @@
 	return null
 
 /datum/sprite_accessory/tails/lizard
-	recommended_species = list("lizard", "ashlizard", "mammal", "unathi")
+	recommended_species = list("lizard", "ashlizard", "synthmammal", "mammal", "unathi", "silverlizard")
 	organ_type = /obj/item/organ/tail/lizard
 	general_type = "lizard"
 
 /datum/sprite_accessory/tails/human
-	recommended_species = list("human", "felinid", "mammal")
+	recommended_species = list("human", "synthhuman", "felinid", "synthmammal", "mammal")
 	organ_type = /obj/item/organ/tail/cat
 
 /datum/sprite_accessory/tails/monkey/default
 	name = "Monkey"
 	icon_state = "monkey"
 	icon = 'icons/mob/mutant_bodyparts.dmi'
-	recommended_species = list("human", "felinid", "mammal", "monkey")
+	recommended_species = list("human", "synthhuman", "felinid", "synthmammal", "mammal", "monkey")
 	color_src = FALSE
 	organ_type = /obj/item/organ/tail/monkey
 
@@ -73,19 +73,23 @@
 				if(HS.hardsuit_tail_colors)
 					return FALSE
 			return TRUE
+	if(H.owned_turf)  //we do a lil' emoting
+		var/list/used_in_turf = list("tail")
+		if(H.owned_turf.name in used_in_turf)
+			return TRUE
 	return FALSE
 
 /datum/sprite_accessory/tails/none
 	name = "None"
 	icon_state = "none"
-	recommended_species = list("mammal", "human", "humanoid")
+	recommended_species = list("synthmammal", "mammal", "human", "synthhuman", "humanoid")
 	color_src = null
 	factual = FALSE
 
 /datum/sprite_accessory/tails/mammal
 	icon_state = "none"
-	recommended_species = list("mammal", "human", "humanoid")
-	icon = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/tails.dmi'
+	recommended_species = list("synthmammal", "mammal","human", "synthhuman", "humanoid")
+	icon = 'modular_skyrat/master_files/icons/mob/sprite_accessory/tails.dmi'
 	organ_type = /obj/item/organ/tail/fluffy/no_wag
 	color_src = USE_MATRIXED_COLORS
 
@@ -93,15 +97,15 @@
 	organ_type = /obj/item/organ/tail/fluffy
 
 /datum/sprite_accessory/tails/mammal/wagging/vulpkanin
-	recommended_species = list("mammal", "human", "vulpkanin", "humanoid")
+	recommended_species = list("synthmammal", "mammal", "human", "synthhuman", "vulpkanin", "humanoid")
 	general_type = "vulpine"
 
 /datum/sprite_accessory/tails/mammal/wagging/tajaran
-	recommended_species = list("mammal", "human", "tajaran", "humanoid")
+	recommended_species = list("synthmammal", "mammal", "human", "synthhuman", "tajaran", "humanoid")
 	general_type = "feline"
 
 /datum/sprite_accessory/tails/mammal/wagging/akula
-	recommended_species = list("mammal", "human", "akula", "aquatic", "humanoid")
+	recommended_species = list("synthmammal", "mammal", "human", "synthhuman", "akula", "aquatic", "humanoid")
 	general_type = "marine"
 
 /datum/sprite_accessory/tails/mammal/wagging/avian1

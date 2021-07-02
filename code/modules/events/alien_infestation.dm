@@ -3,10 +3,12 @@
 	typepath = /datum/round_event/ghost_role/alien_infestation
 	//SKYRAT EDIT CHANGE BEGIN
 	//weight = 5 - SKYRAT EDIT - ORIGINAL
-	weight = 2
+	weight = 0
 	//SKYRAT EDIT CHANGE END
-	
+
 	min_players = 10
+
+	dynamic_should_hijack = TRUE
 
 /datum/round_event_control/alien_infestation/canSpawnEvent()
 	. = ..()
@@ -18,7 +20,7 @@
 			return FALSE
 
 /datum/round_event/ghost_role/alien_infestation
-	announceWhen	= 400
+	announceWhen = 400
 	//SKYRAT EDIT CHANGE BEGIN
 	//minimum_required = 1 - SKYRAT EDIT - ORIGINAL
 	minimum_required = 2
@@ -63,7 +65,7 @@
 		message_admins("An event attempted to spawn an alien but no suitable vents were found. Shutting down.")
 		return MAP_ERROR
 
-	var/list/candidates = get_candidates(ROLE_ALIEN, null, ROLE_ALIEN)
+	var/list/candidates = get_candidates(ROLE_ALIEN, ROLE_ALIEN)
 
 	if(!candidates.len)
 		return NOT_ENOUGH_PLAYERS
@@ -74,6 +76,7 @@
 
 		var/mob/living/carbon/alien/larva/new_xeno = new(vent.loc)
 		new_xeno.key = C.key
+		new_xeno.move_into_vent(vent)
 
 		spawncount--
 		message_admins("[ADMIN_LOOKUPFLW(new_xeno)] has been made into an alien by an event.")

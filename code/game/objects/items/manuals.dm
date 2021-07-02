@@ -215,7 +215,7 @@
 			<li>Insert the nuclear authorisation disk into slot.</li>
 			<li>Type numeric authorisation code into the keypad. This should have been provided. Note: If you make a mistake press R to reset the device.
 			<li>Press the E button to log onto the device.</li>
-			You now have activated the device. To deactivate the buttons at anytime for example when you've already prepped the bomb for detonation	remove the auth disk OR press the R on the keypad.<br>
+			You now have activated the device. To deactivate the buttons at anytime for example when you've already prepped the bomb for detonation remove the auth disk OR press the R on the keypad.<br>
 			Now the bomb CAN ONLY be detonated using the timer. Manual detonation is not an option.<br>
 			Note: Nanotrasen is a pain in the neck.<br>
 			Toggle off the SAFETY.<br>
@@ -324,7 +324,7 @@
 	skyrat_wiki = TRUE //SKYRAT EDIT ADDITION
 
 /obj/item/book/manual/wiki/security_space_law/suicide_act(mob/living/user)
-	user.visible_message("<span class='suicide'>[user] pretends to read \the [src] intently... then promptly dies of laughter!</span>")
+	user.visible_message(span_suicide("[user] pretends to read \the [src] intently... then promptly dies of laughter!"))
 	return OXYLOSS
 
 /obj/item/book/manual/wiki/infections
@@ -435,7 +435,7 @@
 
 /obj/item/book/manual/wiki/toxins/suicide_act(mob/user)
 	var/mob/living/carbon/human/H = user
-	user.visible_message("<span class='suicide'>[user] starts dancing to the Rhumba Beat! It looks like [user.p_theyre()] trying to commit suicide!</span>")
+	user.visible_message(span_suicide("[user] starts dancing to the Rhumba Beat! It looks like [user.p_theyre()] trying to commit suicide!"))
 	playsound(loc, 'sound/effects/spray.ogg', 10, TRUE, -3)
 	if (!QDELETED(H))
 		H.emote("spin")

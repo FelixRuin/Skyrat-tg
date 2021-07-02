@@ -23,11 +23,11 @@
 
 /obj/item/gun/ballistic/rifle/rack(mob/user = null)
 	if (bolt_locked == FALSE)
-		to_chat(user, "<span class='notice'>You open the bolt of \the [src].</span>")
+		to_chat(user, span_notice("You open the bolt of \the [src]."))
 		playsound(src, rack_sound, rack_sound_volume, rack_sound_vary)
 		process_chamber(FALSE, FALSE, FALSE)
 		bolt_locked = TRUE
-		update_icon()
+		update_appearance()
 		return
 	drop_bolt(user)
 
@@ -38,7 +38,7 @@
 
 /obj/item/gun/ballistic/rifle/attackby(obj/item/A, mob/user, params)
 	if (!bolt_locked && !istype(A, /obj/item/stack/sheet/cloth))
-		to_chat(user, "<span class='notice'>The bolt is closed!</span>")
+		to_chat(user, span_notice("The bolt is closed!"))
 		return
 	return ..()
 
@@ -70,11 +70,45 @@
 	if(.)
 		spread = 36
 		can_bayonet = FALSE
-		update_icon()
+		update_appearance()
+
+/* - SKYRAT EDIT REMOVAL
+/obj/item/gun/ballistic/rifle/boltaction/attack_self(mob/user)
+	if(can_jam)
+		if(jammed)
+			if(prob(unjam_chance))
+				jammed = FALSE
+				unjam_chance = 10
+			else
+				unjam_chance += 10
+				to_chat(user, span_warning("[src] is jammed!"))
+				playsound(user,'sound/weapons/jammed.ogg', 75, TRUE)
+				return FALSE
+	..()
+
+/obj/item/gun/ballistic/rifle/boltaction/process_fire(mob/user)
+	if(can_jam)
+		if(chambered.loaded_projectile)
+			if(prob(jamming_chance))
+				jammed = TRUE
+			jamming_chance  += jamming_increment
+			jamming_chance = clamp (jamming_chance, 0, 100)
+	return ..()
+
+/obj/item/gun/ballistic/rifle/boltaction/attackby(obj/item/item, mob/user, params)
+	. = ..()
+	if(can_jam)
+		if(bolt_locked)
+			if(istype(item, /obj/item/gun_maintenance_supplies))
+				if(do_after(user, 10 SECONDS, target = src))
+					user.visible_message(span_notice("[user] finishes maintenance of [src]."))
+					jamming_chance = 10
+					qdel(item)
+*/ //SKYRAT EDIT END
 
 /obj/item/gun/ballistic/rifle/boltaction/blow_up(mob/user)
 	. = FALSE
-	if(chambered?.BB)
+	if(chambered?.loaded_projectile)
 		process_fire(user, user, FALSE)
 		. = TRUE
 

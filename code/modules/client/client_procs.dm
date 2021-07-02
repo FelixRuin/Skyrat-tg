@@ -1,8 +1,8 @@
 	////////////
 	//SECURITY//
 	////////////
-#define UPLOAD_LIMIT		524288	//Restricts client uploads to the server to 0.5MB
-#define UPLOAD_LIMIT_ADMIN	2621440	//Restricts admin client uploads to the server to 2.5MB
+#define UPLOAD_LIMIT 524288 //Restricts client uploads to the server to 0.5MB
+#define UPLOAD_LIMIT_ADMIN 5550000 //Restricts admin client uploads to the server to 2.5MB //SKYRAT EDIT CHANGE - CHANGED TO 5.55 MB
 
 GLOBAL_LIST_INIT(blacklisted_builds, list(
 	"1407" = "bug preventing client display overrides from working leads to clients being able to see things/mobs they shouldn't be able to see",
@@ -11,12 +11,12 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 	))
 
-#define LIMITER_SIZE	5
-#define CURRENT_SECOND	1
-#define SECOND_COUNT	2
-#define CURRENT_MINUTE	3
-#define MINUTE_COUNT	4
-#define ADMINSWARNED_AT	5
+#define LIMITER_SIZE 5
+#define CURRENT_SECOND 1
+#define SECOND_COUNT 2
+#define CURRENT_MINUTE 3
+#define MINUTE_COUNT 4
+#define ADMINSWARNED_AT 5
 	/*
 	When somebody clicks a link in game, this Topic is called first.
 	It does the stuff in this proc and  then is redirected to the Topic() proc for the src=[0xWhatever]
@@ -34,7 +34,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	*/
 
 /client/Topic(href, href_list, hsrc)
-	if(!usr || usr != mob)	//stops us calling Topic for somebody else's client. Also helps prevent usr=null
+	if(!usr || usr != mob) //stops us calling Topic for somebody else's client. Also helps prevent usr=null
 		return
 	//SKYRAT EDIT ADDITION BEGIN - MENTOR
 	if(mentor_client_procs(href_list))
@@ -65,7 +65,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 				msg += " Administrators have been informed."
 				log_game("[key_name(src)] Has hit the per-minute topic limit of [mtl] topic calls in a given game minute")
 				message_admins("[ADMIN_LOOKUPFLW(usr)] [ADMIN_KICK(usr)] Has hit the per-minute topic limit of [mtl] topic calls in a given game minute")
-			to_chat(src, "<span class='danger'>[msg]</span>")
+			to_chat(src, span_danger("[msg]"))
 			return
 
 	var/stl = CONFIG_GET(number/second_topic_limit)
@@ -78,7 +78,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 			topiclimiter[SECOND_COUNT] = 0
 		topiclimiter[SECOND_COUNT] += 1
 		if (topiclimiter[SECOND_COUNT] > stl)
-			to_chat(src, "<span class='danger'>Your previous action was ignored because you've done too many in a second</span>")
+			to_chat(src, span_danger("Your previous action was ignored because you've done too many in a second"))
 			return
 
 	// Tgui Topic middleware
@@ -93,7 +93,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 	//byond bug ID:2256651
 	if (asset_cache_job && (asset_cache_job in completed_asset_jobs))
-		to_chat(src, "<span class='danger'>An error has been detected in how your client is receiving resources. Attempting to correct.... (If you keep seeing these messages you might want to close byond and reconnect)</span>")
+		to_chat(src, span_danger("An error has been detected in how your client is receiving resources. Attempting to correct.... (If you keep seeing these messages you might want to close byond and reconnect)"))
 		src << browse("...", "window=asset_cache_browser")
 		return
 	if (href_list["asset_cache_preload_data"])
@@ -128,7 +128,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		if(QDELETED(real_src))
 			return
 
-	..()	//redirect to hsrc.Topic()
+	..() //redirect to hsrc.Topic()
 
 /client/proc/is_content_unlocked()
 	if(!prefs.unlock_content)
@@ -175,11 +175,11 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	if(CONFIG_GET(flag/automute_on) && !holder && last_message == message)
 		src.last_message_count++
 		if(src.last_message_count >= SPAM_TRIGGER_AUTOMUTE)
-			to_chat(src, "<span class='danger'>You have exceeded the spam filter limit for identical messages. An auto-mute was applied.</span>")
+			to_chat(src, span_danger("You have exceeded the spam filter limit for identical messages. An auto-mute was applied."))
 			cmd_admin_mute(src, mute_type, 1)
 			return TRUE
 		if(src.last_message_count >= SPAM_TRIGGER_WARNING)
-			to_chat(src, "<span class='danger'>You are nearing the spam filter limit for identical messages.</span>")
+			to_chat(src, span_danger("You are nearing the spam filter limit for identical messages."))
 			return FALSE
 	else
 		last_message = message
@@ -204,7 +204,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 /client/New(TopicData)
 	var/tdata = TopicData //save this for later use
-	TopicData = null							//Prevent calls to client.Topic from connect
+	TopicData = null //Prevent calls to client.Topic from connect
 
 	if(connection != "seeker" && connection != "web")//Invalid connection type.
 		return null
@@ -221,10 +221,9 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	GLOB.interviews.client_login(src)
 	var/connecting_admin = FALSE //because de-admined admins connecting should be treated like admins.
 	//Admin Authorisation
-	holder = GLOB.admin_datums[ckey]
-	if(holder)
-		GLOB.admins |= src
-		holder.owner = src
+	var/datum/admins/admin_datum = GLOB.admin_datums[ckey]
+	if (!isnull(admin_datum))
+		admin_datum.associate(src)
 		connecting_admin = TRUE
 	else if(GLOB.deadmins[ckey])
 		add_verb(src, /client/proc/readmin)
@@ -252,14 +251,14 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	else
 		prefs = new /datum/preferences(src)
 		GLOB.preferences_datums[ckey] = prefs
-	prefs.last_ip = address				//these are gonna be used for banning
-	prefs.last_id = computer_id			//these are gonna be used for banning
+	prefs.last_ip = address //these are gonna be used for banning
+	prefs.last_id = computer_id //these are gonna be used for banning
 	fps = (prefs.clientfps < 0) ? RECOMMENDED_FPS : prefs.clientfps
 
 	if(fexists(roundend_report_file()))
 		add_verb(src, /client/proc/show_previous_roundend_report)
 
-	if(fexists("data/last_roundend/server_last_roundend_report.html"))
+	if(fexists("data/server_last_roundend_report.html"))
 		add_verb(src, /client/proc/show_servers_last_roundend_report)
 
 	var/full_version = "[byond_version].[byond_build ? byond_build : "xxx"]"
@@ -282,10 +281,10 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 					alert_mob_dupe_login = TRUE
 				if(matches)
 					if(C)
-						message_admins("<span class='danger'><B>Notice: </B></span><span class='notice'>[key_name_admin(src)] has the same [matches] as [key_name_admin(C)].</span>")
+						message_admins(span_danger("<B>Notice: </B></span><span class='notice'>[key_name_admin(src)] has the same [matches] as [key_name_admin(C)]."))
 						log_admin_private("Notice: [key_name(src)] has the same [matches] as [key_name(C)].")
 					else
-						message_admins("<span class='danger'><B>Notice: </B></span><span class='notice'>[key_name_admin(src)] has the same [matches] as [key_name_admin(C)] (no longer logged in). </span>")
+						message_admins(span_danger("<B>Notice: </B></span><span class='notice'>[key_name_admin(src)] has the same [matches] as [key_name_admin(C)] (no longer logged in). "))
 						log_admin_private("Notice: [key_name(src)] has the same [matches] as [key_name(C)] (no longer logged in).")
 	var/reconnecting = FALSE
 	if(GLOB.player_details[ckey])
@@ -298,7 +297,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		GLOB.player_details[ckey] = player_details
 
 
-	. = ..()	//calls mob.Login()
+	. = ..() //calls mob.Login()
 	if (length(GLOB.stickybanadminexemptions))
 		GLOB.stickybanadminexemptions -= ckey
 		if (!length(GLOB.stickybanadminexemptions))
@@ -306,16 +305,16 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 	if (byond_version >= 512)
 		if (!byond_build || byond_build < 1386)
-			message_admins("<span class='adminnotice'>[key_name(src)] has been detected as spoofing their byond version. Connection rejected.</span>")
+			message_admins(span_adminnotice("[key_name(src)] has been detected as spoofing their byond version. Connection rejected."))
 			add_system_note("Spoofed-Byond-Version", "Detected as using a spoofed byond version.")
 			log_access("Failed Login: [key] - Spoofed byond version")
 			qdel(src)
 
 		if (num2text(byond_build) in GLOB.blacklisted_builds)
 			log_access("Failed login: [key] - blacklisted byond version")
-			to_chat(src, "<span class='userdanger'>Your version of byond is blacklisted.</span>")
-			to_chat(src, "<span class='danger'>Byond build [byond_build] ([byond_version].[byond_build]) has been blacklisted for the following reason: [GLOB.blacklisted_builds[num2text(byond_build)]].</span>")
-			to_chat(src, "<span class='danger'>Please download a new version of byond. If [byond_build] is the latest, you can go to <a href=\"https://secure.byond.com/download/build\">BYOND's website</a> to download other versions.</span>")
+			to_chat(src, span_userdanger("Your version of byond is blacklisted."))
+			to_chat(src, span_danger("Byond build [byond_build] ([byond_version].[byond_build]) has been blacklisted for the following reason: [GLOB.blacklisted_builds[num2text(byond_build)]]."))
+			to_chat(src, span_danger("Please download a new version of byond. If [byond_build] is the latest, you can go to <a href=\"https://secure.byond.com/download/build\">BYOND's website</a> to download other versions."))
 			if(connecting_admin)
 				to_chat(src, "As an admin, you are being allowed to continue using this version, but please consider changing byond versions")
 			else
@@ -332,7 +331,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 	if(alert_mob_dupe_login)
 		spawn()
-			alert(mob, "You have logged in already with another key this round, please log out of this one NOW or risk being banned!")
+			tgui_alert(mob, "You have logged in already with another key this round, please log out of this one NOW or risk being banned!")
 
 	connection_time = world.time
 	connection_realtime = world.realtime
@@ -341,8 +340,8 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	var/cev = CONFIG_GET(number/client_error_version)
 	var/ceb = CONFIG_GET(number/client_error_build)
 	var/cwv = CONFIG_GET(number/client_warn_version)
-	if (byond_version < cev || (byond_version == cev && byond_build < ceb))		//Out of date client.
-		to_chat(src, "<span class='danger'><b>Your version of BYOND is too old:</b></span>")
+	if (byond_version < cev || (byond_version == cev && byond_build < ceb)) //Out of date client.
+		to_chat(src, span_danger("<b>Your version of BYOND is too old:</b>"))
 		to_chat(src, CONFIG_GET(string/client_error_message))
 		to_chat(src, "Your version: [byond_version].[byond_build]")
 		to_chat(src, "Required version: [cev].[ceb] or later")
@@ -352,7 +351,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		else
 			qdel(src)
 			return
-	else if (byond_version < cwv)	//We have words for this client.
+	else if (byond_version < cwv) //We have words for this client.
 		if(CONFIG_GET(flag/client_warn_popup))
 			var/msg = "<b>Your version of byond may be getting out of date:</b><br>"
 			msg += CONFIG_GET(string/client_warn_message) + "<br><br>"
@@ -361,7 +360,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 			msg += "Visit <a href=\"https://secure.byond.com/download\">BYOND's website</a> to get the latest version of BYOND.<br>"
 			src << browse(msg, "window=warning_popup")
 		else
-			to_chat(src, "<span class='danger'><b>Your version of byond may be getting out of date:</b></span>")
+			to_chat(src, span_danger("<b>Your version of byond may be getting out of date:</b>"))
 			to_chat(src, CONFIG_GET(string/client_warn_message))
 			to_chat(src, "Your version: [byond_version]")
 			to_chat(src, "Required version to remove this message: [cwv] or later")
@@ -383,7 +382,9 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 	if(holder)
 		add_admin_verbs()
-		to_chat(src, get_message_output("memo"))
+		var/memo_message = get_message_output("memo")
+		if(memo_message)
+			to_chat(src, memo_message)
 		adminGreet()
 	if (mob && reconnecting)
 		var/stealth_admin = mob.client?.holder?.fakekey
@@ -418,7 +419,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	apply_clickcatcher()
 
 	if(prefs.lastchangelog != GLOB.changelog_hash) //bolds the changelog button on the interface so we know there are updates.
-		to_chat(src, "<span class='info'>You have unread updates in the changelog.</span>")
+		to_chat(src, span_info("You have unread updates in the changelog."))
 		if(CONFIG_GET(flag/aggressive_changelog))
 			changelog()
 		else
@@ -431,10 +432,13 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 	if(CONFIG_GET(flag/autoconvert_notes))
 		convert_notes_sql(ckey)
-	to_chat(src, get_message_output("message", ckey))
+	var/user_messages = get_message_output("message", ckey)
+	if(user_messages)
+		to_chat(src, user_messages)
 	if(!winexists(src, "asset_cache_browser")) // The client is using a custom skin, tell them.
-		to_chat(src, "<span class='warning'>Unable to access asset cache browser, if you are using a custom skin file, please allow DS to download the updated version, if you are not, then make a bug report. This is not a critical issue but can cause issues with resource downloading, as it is impossible to know when extra resources arrived to you.</span>")
+		to_chat(src, span_warning("Unable to access asset cache browser, if you are using a custom skin file, please allow DS to download the updated version, if you are not, then make a bug report. This is not a critical issue but can cause issues with resource downloading, as it is impossible to know when extra resources arrived to you."))
 
+	update_ambience_pref()
 
 	//This is down here because of the browse() calls in tooltip/New()
 	if(!tooltips)
@@ -500,6 +504,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		UNSETEMPTY(movingmob.client_mobs_in_contents)
 		movingmob = null
 	active_mousedown_item = null
+	SSambience.ambience_listening_clients -= src
 	QDEL_NULL(view_size)
 	QDEL_NULL(void)
 	QDEL_NULL(tooltips)
@@ -558,7 +563,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		if(minutes <= living_recs && !CONFIG_GET(flag/panic_bunker_interview))
 			var/reject_message = "Failed Login: [key] - Account attempting to connect during panic bunker, but they do not have the required living time [minutes]/[living_recs]"
 			log_access(reject_message)
-			message_admins("<span class='adminnotice'>[reject_message]</span>")
+			message_admins(span_adminnotice("[reject_message]"))
 			var/message = CONFIG_GET(string/panic_bunker_message)
 			message = replacetext(message, "%minutes%", living_recs)
 			to_chat(src, message)
@@ -566,7 +571,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 			var/list/panic_addr = CONFIG_GET(string/panic_server_address)
 			if(panic_addr && !connectiontopic_a["redirect"])
 				var/panic_name = CONFIG_GET(string/panic_server_name)
-				to_chat(src, "<span class='notice'>Sending you to [panic_name ? panic_name : panic_addr].</span>")
+				to_chat(src, span_notice("Sending you to [panic_name ? panic_name : panic_addr]."))
 				winset(src, null, "command=.options")
 				src << link("[panic_addr]?redirect=1")
 			qdel(query_client_in_db)
@@ -633,6 +638,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 					)
 					if(!query_datediff.Execute())
 						qdel(query_datediff)
+						qdel(query_get_client_age)
 						return
 					if(query_datediff.NextRow())
 						account_age = text2num(query_datediff.item[1])
@@ -649,10 +655,10 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		qdel(query_log_player)
 	if(!account_join_date)
 		account_join_date = "Error"
-	var/datum/db_query/query_log_connection = SSdbcore.NewQuery({"
-		INSERT INTO `[format_table_name("connection_log")]` (`id`,`datetime`,`server_ip`,`server_port`,`round_id`,`ckey`,`ip`,`computerid`)
-		VALUES(null,Now(),INET_ATON(:internet_address),:port,:round_id,:ckey,INET_ATON(:ip),:computerid)
-	"}, list("internet_address" = world.internet_address || "0", "port" = world.port, "round_id" = GLOB.round_id, "ckey" = ckey, "ip" = address, "computerid" = computer_id))
+	var/datum/db_query/query_log_connection = SSdbcore.NewQuery(/* SKYRAT EDIT CHANGE - MULTISERVER */{"
+		INSERT INTO `[format_table_name("connection_log")]` (`id`,`datetime`,`server_name`,`server_ip`,`server_port`,`round_id`,`ckey`,`ip`,`computerid`)
+		VALUES(null,Now(),:server_name,INET_ATON(:internet_address),:port,:round_id,:ckey,INET_ATON(:ip),:computerid)
+	"}, list("server_name" = CONFIG_GET(string/serversqlname), "internet_address" = world.internet_address || "0", "port" = world.port, "round_id" = GLOB.round_id, "ckey" = ckey, "ip" = address, "computerid" = computer_id)) //SKYRAT EDIT CHANGE - MULTISERVER
 	query_log_connection.Execute()
 	qdel(query_log_connection)
 
@@ -732,7 +738,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	if (oldcid)
 		if (!topic || !topic["token"] || !tokens[ckey] || topic["token"] != tokens[ckey])
 			if (!cidcheck_spoofckeys[ckey])
-				message_admins("<span class='adminnotice'>[key_name(src)] appears to have attempted to spoof a cid randomizer check.</span>")
+				message_admins(span_adminnotice("[key_name(src)] appears to have attempted to spoof a cid randomizer check."))
 				cidcheck_spoofckeys[ckey] = TRUE
 			cidcheck[ckey] = computer_id
 			tokens[ckey] = cid_check_reconnect()
@@ -748,11 +754,11 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		if (oldcid != computer_id && computer_id != lastcid) //IT CHANGED!!!
 			cidcheck -= ckey //so they can try again after removing the cid randomizer.
 
-			to_chat(src, "<span class='userdanger'>Connection Error:</span>")
-			to_chat(src, "<span class='danger'>Invalid ComputerID(spoofed). Please remove the ComputerID spoofer from your byond installation and try again.</span>")
+			to_chat(src, span_userdanger("Connection Error:"))
+			to_chat(src, span_danger("Invalid ComputerID(spoofed). Please remove the ComputerID spoofer from your byond installation and try again."))
 
 			if (!cidcheck_failedckeys[ckey])
-				message_admins("<span class='adminnotice'>[key_name(src)] has been detected as using a cid randomizer. Connection rejected.</span>")
+				message_admins(span_adminnotice("[key_name(src)] has been detected as using a cid randomizer. Connection rejected."))
 				send2tgs_adminless_only("CidRandomizer", "[key_name(src)] has been detected as using a cid randomizer. Connection rejected.")
 				cidcheck_failedckeys[ckey] = TRUE
 				note_randomizer_user()
@@ -763,11 +769,11 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 			return TRUE
 		else
 			if (cidcheck_failedckeys[ckey])
-				message_admins("<span class='adminnotice'>[key_name_admin(src)] has been allowed to connect after showing they removed their cid randomizer</span>")
+				message_admins(span_adminnotice("[key_name_admin(src)] has been allowed to connect after showing they removed their cid randomizer"))
 				send2tgs_adminless_only("CidRandomizer", "[key_name(src)] has been allowed to connect after showing they removed their cid randomizer.")
 				cidcheck_failedckeys -= ckey
 			if (cidcheck_spoofckeys[ckey])
-				message_admins("<span class='adminnotice'>[key_name_admin(src)] has been allowed to connect after appearing to have attempted to spoof a cid randomizer check because it <i>appears</i> they aren't spoofing one this time</span>")
+				message_admins(span_adminnotice("[key_name_admin(src)] has been allowed to connect after appearing to have attempted to spoof a cid randomizer check because it <i>appears</i> they aren't spoofing one this time"))
 				cidcheck_spoofckeys -= ckey
 			cidcheck -= ckey
 	else if (computer_id != lastcid)
@@ -828,18 +834,23 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	if (CONFIG_GET(string/ipintel_email))
 		var/datum/ipintel/res = get_ip_intel(address)
 		if (res.intel >= CONFIG_GET(number/ipintel_rating_bad))
-			message_admins("<span class='adminnotice'>Proxy Detection: [key_name_admin(src)] IP intel rated [res.intel*100]% likely to be a Proxy/VPN.</span>")
+			message_admins(span_adminnotice("Proxy Detection: [key_name_admin(src)] IP intel rated [res.intel*100]% likely to be a Proxy/VPN."))
 		ip_intel = res.intel
 
 /client/Click(atom/object, atom/location, control, params)
+	if(click_intercept_time)
+		if(click_intercept_time >= world.time)
+			click_intercept_time = 0 //Reset and return. Next click should work, but not this one.
+			return
+		click_intercept_time = 0 //Just reset. Let's not keep re-checking forever.
 	var/ab = FALSE
-	var/list/L = params2list(params)
+	var/list/modifiers = params2list(params)
 
-	var/dragged = L["drag"]
-	if(dragged && !L[dragged])
+	var/dragged = LAZYACCESS(modifiers, DRAG)
+	if(dragged && !LAZYACCESS(modifiers, dragged)) //I don't know what's going on here, but I don't trust it
 		return
 
-	if (object && object == middragatom && L["left"])
+	if (object && object == middragatom && LAZYACCESS(modifiers, LEFT_CLICK))
 		ab = max(0, 5 SECONDS-(world.time-middragtime)*0.1)
 
 	var/mcl = CONFIG_GET(number/minute_click_limit)
@@ -863,7 +874,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 					add_system_note("aimbot", "Is using the middle click aimbot exploit")
 				log_game("[key_name(src)] Has hit the per-minute click limit of [mcl] clicks in a given game minute")
 				message_admins("[ADMIN_LOOKUPFLW(usr)] [ADMIN_KICK(usr)] Has hit the per-minute click limit of [mcl] clicks in a given game minute")
-			to_chat(src, "<span class='danger'>[msg]</span>")
+			to_chat(src, span_danger("[msg]"))
 			return
 
 	var/scl = CONFIG_GET(number/second_click_limit)
@@ -876,7 +887,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 			clicklimiter[SECOND_COUNT] = 0
 		clicklimiter[SECOND_COUNT] += 1+(!!ab)
 		if (clicklimiter[SECOND_COUNT] > scl)
-			to_chat(src, "<span class='danger'>Your previous click was ignored because you've done too many in a second</span>")
+			to_chat(src, span_danger("Your previous click was ignored because you've done too many in a second"))
 			return
 
 	if (prefs.hotkeys)
@@ -1000,6 +1011,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		CRASH("change_view called without argument.")
 
 	view = new_size
+	mob.hud_used.screentip_text.update_view()
 	apply_clickcatcher()
 	mob.reload_fullscreen()
 	if (isliving(mob))
@@ -1022,18 +1034,27 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	if(prefs && prefs.chat_toggles & CHAT_PULLR)
 		to_chat(src, announcement)
 
-/client/proc/show_character_previews(mutable_appearance/MA)
+/client/proc/show_character_previews(mutable_appearance/source)
+	LAZYINITLIST(char_render_holders)
+	if(!LAZYLEN(char_render_holders))
+		for(var/plane_master_path as anything in subtypesof(/atom/movable/screen/plane_master))
+			var/atom/movable/screen/plane_master/plane_master = new plane_master_path()
+			char_render_holders["plane_master-[plane_master.plane]"] = plane_master
+			plane_master.backdrop(mob)
+			screen |= plane_master
+			plane_master.screen_loc = "character_preview_map:0,CENTER"
+
 	var/pos = 0
-	for(var/D in GLOB.cardinals)
+	for(var/dir in GLOB.cardinals)
 		pos++
-		var/atom/movable/screen/O = LAZYACCESS(char_render_holders, "[D]")
-		if(!O)
-			O = new
-			LAZYSET(char_render_holders, "[D]", O)
-			screen |= O
-		O.appearance = MA
-		O.dir = D
-		O.screen_loc = "character_preview_map:0,[pos]"
+		var/atom/movable/screen/preview = char_render_holders["preview-[dir]"]
+		if(!preview)
+			preview = new
+			char_render_holders["preview-[dir]"] = preview
+			screen |= preview
+		preview.appearance = source
+		preview.dir = dir
+		preview.screen_loc = "character_preview_map:0,[pos]"
 
 /client/proc/clear_character_previews()
 	for(var/index in char_render_holders)
@@ -1044,18 +1065,18 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 
 ///Redirect proc that makes it easier to call the unlock achievement proc. Achievement type is the typepath to the award, user is the mob getting the award, and value is an optional variable used for leaderboard value increments
 /client/proc/give_award(achievement_type, mob/user, value = 1)
-	return	player_details.achievements.unlock(achievement_type, user, value)
+	return player_details.achievements.unlock(achievement_type, user, value)
 
 ///Redirect proc that makes it easier to get the status of an achievement. Achievement type is the typepath to the award.
 /client/proc/get_award_status(achievement_type, mob/user, value = 1)
-	return	player_details.achievements.get_achievement_status(achievement_type)
+	return player_details.achievements.get_achievement_status(achievement_type)
 
 ///Gives someone hearted status for OOC, from behavior commendations
 /client/proc/adjust_heart(duration = 24 HOURS)
 	var/new_duration = world.realtime + duration
 	if(prefs.hearted_until > new_duration)
 		return
-	to_chat(src, "<span class='nicegreen'>Someone awarded you a heart!</span>")
+	to_chat(src, span_nicegreen("Someone awarded you a heart!"))
 	prefs.hearted_until = new_duration
 	prefs.hearted = TRUE
 	prefs.save_preferences()
@@ -1087,7 +1108,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 /client/proc/check_panel_loaded()
 	if(statbrowser_ready)
 		return
-	to_chat(src, "<span class='userdanger'>Statpanel failed to load, click <a href='?src=[REF(src)];reload_statbrowser=1'>here</a> to reload the panel </span>")
+	to_chat(src, span_userdanger("Statpanel failed to load, click <a href='?src=[REF(src)];reload_statbrowser=1'>here</a> to reload the panel "))
 
 /**
  * Initializes dropdown menus on client
@@ -1129,3 +1150,26 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		winset(src, "mapwindow.map", "right-click=false")
 		winset(src, "default.Shift", "is-disabled=true")
 		winset(src, "default.ShiftUp", "is-disabled=true")
+
+/client/proc/update_ambience_pref()
+	if(prefs.toggles & SOUND_AMBIENCE)
+		if(SSambience.ambience_listening_clients[src] > world.time)
+			return // If already properly set we don't want to reset the timer.
+		SSambience.ambience_listening_clients[src] = world.time + 10 SECONDS //Just wait 10 seconds before the next one aight mate? cheers.
+	else
+		SSambience.ambience_listening_clients -= src
+
+/// Checks if this client has met the days requirement passed in, or if
+/// they are exempt from it.
+/// Returns the number of days left, or 0.
+/client/proc/get_remaining_days(days_needed)
+	if(!CONFIG_GET(flag/use_age_restriction_for_jobs))
+		return 0
+
+	if(!isnum(player_age))
+		return 0 //This is only a number if the db connection is established, otherwise it is text: "Requires database", meaning these restrictions cannot be enforced
+
+	if(!isnum(days_needed))
+		return 0
+
+	return max(0, days_needed - player_age)

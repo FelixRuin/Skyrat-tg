@@ -1,3 +1,4 @@
+/* SKYRAT EDIT REMOVAL - MOVED TO MODULAR
 SUBSYSTEM_DEF(title)
 	name = "Title Screen"
 	flags = SS_NO_FIRE
@@ -22,7 +23,6 @@ SUBSYSTEM_DEF(title)
 	var/list/title_screens = list()
 	var/use_rare_screens = prob(1)
 
-	SSmapping.HACK_LoadMapConfig()
 	for(var/S in provisional_title_screens)
 		var/list/L = splittext(S,"+")
 		if((L.len == 1 && (L[1] != "exclude" && L[1] != "blank.png"))|| (L.len > 1 && ((use_rare_screens && lowertext(L[1]) == "rare") || (lowertext(L[1]) == lowertext(SSmapping.config.map_name)))))
@@ -67,3 +67,4 @@ SUBSYSTEM_DEF(title)
 	splash_turf = SStitle.splash_turf
 	file_path = SStitle.file_path
 	previous_icon = SStitle.previous_icon
+*/

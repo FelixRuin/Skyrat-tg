@@ -29,6 +29,10 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	var/hair_color
 	///The alpha used by the hair. 255 is completely solid, 0 is invisible.
 	var/hair_alpha = 255
+	///The gradient style used for the mob's hair.
+	var/grad_style
+	///The gradient color used to color the gradient.
+	var/grad_color
 
 	///Does the species use skintones or not? As of now only used by humans.
 	var/use_skintones = FALSE
@@ -106,7 +110,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	///To use MUTCOLOR with a fixed color that's independent of the mcolor feature in DNA.
 	var/fixed_mut_color = ""
 	///Special mutation that can be found in the genepool exclusively in this species. Dont leave empty or changing species will be a headache
-	var/inert_mutation 	= DWARFISM
+	var/inert_mutation = DWARFISM
 	///Used to set the mob's deathsound upon species change
 	var/deathsound
 	///Sounds to override barefeet walking
@@ -120,8 +124,10 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	var/flying_species = FALSE
 	///The actual flying ability given to flying species
 	var/datum/action/innate/flight/fly
-	///The icon used for the wings
+	///Current wings icon
 	var/wings_icon = "Angel"
+	//Dictates which wing icons are allowed for a given species. If count is >1 a radial menu is used to choose between all icons in list
+	var/list/wings_icons = list("Angel")
 	///Used to determine what description to give when using a potion of flight, if false it will describe them as growing new wings
 	var/has_innate_wings = FALSE
 
@@ -137,7 +143,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	///Species-only traits. Can be found in [code/__DEFINES/DNA.dm]
 	var/list/species_traits = list()
 	///Generic traits tied to having the species.
-	var/list/inherent_traits = list(TRAIT_ADVANCEDTOOLUSER)
+	var/list/inherent_traits = list(TRAIT_ADVANCEDTOOLUSER, TRAIT_CAN_STRIP)
 	/// List of biotypes the mob belongs to. Used by diseases.
 	var/inherent_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	///List of factions the mob gain upon gaining this species.
@@ -145,7 +151,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 	///Punch-specific attack verb.
 	var/attack_verb = "punch"
-	///
+	/// The visual effect of the attack.
+	var/attack_effect = ATTACK_EFFECT_PUNCH
 	var/sound/attack_sound = 'sound/weapons/punch1.ogg'
 	var/sound/miss_sound = 'sound/weapons/punchmiss.ogg'
 
@@ -188,8 +195,14 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	///For custom overrides for species ass images
 	var/icon/ass_image
 
+	/// List of family heirlooms this species can get with the family heirloom quirk. List of types.
+	var/list/family_heirlooms
+
 	///List of results you get from knife-butchering. null means you cant butcher it. Associated by resulting type - value of amount
 	var/list/knife_butcher_results
+
+	///List of visual overlays created by handle_body()
+	var/list/body_vis_overlays = list()
 
 ///////////
 // PROCS //
@@ -198,8 +211,9 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 /datum/species/New()
 
-	if(!limbs_id)	//if we havent set a limbs id to use, just use our own id
+	if(!limbs_id) //if we havent set a limbs id to use, just use our own id
 		limbs_id = id
+	wings_icons = string_list(wings_icons)
 	..()
 
 /**
@@ -390,7 +404,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			var/obj/item/I = V
 			if(istype(I))
 				C.dropItemToGround(I)
-			else	//Entries in the list should only ever be items or null, so if it's not an item, we can assume it's an empty hand
+			else //Entries in the list should only ever be items or null, so if it's not an item, we can assume it's an empty hand
 				C.put_in_hands(new mutanthands())
 
 	for(var/X in inherent_traits)
@@ -464,6 +478,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 		C.dna.species.mutant_bodyparts -= "wings"
 		C.dna.features["wings"] = "None"
 		C.update_body()
+	clear_tail_moodlets(C)
 
 	C.remove_movespeed_modifier(/datum/movespeed_modifier/species)
 
@@ -479,8 +494,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  */
 /datum/species/proc/handle_hair(mob/living/carbon/human/H, forced_colour)
 	H.remove_overlay(HAIR_LAYER)
-	var/obj/item/bodypart/head/HD = H.get_bodypart(BODY_ZONE_HEAD)
-	if(!HD) //Decapitated
+	var/obj/item/bodypart/head/noggin = H.get_bodypart(BODY_ZONE_HEAD)
+	if(!noggin) //Decapitated
 		return
 
 	if(HAS_TRAIT(H, TRAIT_HUSK))
@@ -495,7 +510,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	var/dynamic_fhair_suffix = ""
 
 	//for augmented heads
-	if(HD.status == BODYPART_ROBOTIC && !(ROBOTIC_LIMBS in species_traits)) //SKYRAT EDIT CHANGE - CUSTOMIZATION
+	if(noggin.status == BODYPART_ROBOTIC && !(ROBOTIC_LIMBS in species_traits)) //SKYRAT EDIT CHANGE - CUSTOMIZATION
 		return
 
 	//we check if our hat or helmet hides our facial hair.
@@ -552,6 +567,10 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 			facial_overlay.alpha = hair_alpha
 
+			var/mutable_appearance/facial_em_blocker = mutable_appearance(fhair_file, fhair_state, plane = EMISSIVE_PLANE, alpha = hair_alpha, appearance_flags = KEEP_APART)
+			facial_em_blocker.color = GLOB.em_block_color
+			facial_overlay.overlays += facial_em_blocker
+
 			standing += facial_overlay
 
 	if(H.head)
@@ -572,6 +591,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 	if(!hair_hidden || dynamic_hair_suffix)
 		var/mutable_appearance/hair_overlay = mutable_appearance(layer = -HAIR_LAYER)
+		var/mutable_appearance/gradient_overlay = mutable_appearance(layer = -HAIR_LAYER)
 		if(!hair_hidden && !H.getorgan(/obj/item/organ/brain)) //Applies the debrained overlay if there is no brain
 			if(!(NOBLOOD in species_traits))
 				hair_overlay.icon = 'icons/mob/human_face.dmi'
@@ -610,14 +630,32 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 							hair_overlay.color = "#" + hair_color
 					else
 						hair_overlay.color = "#" + H.hair_color
+
+					//Gradients
+					grad_style = H.grad_style
+					grad_color = H.grad_color
+					if(grad_style)
+						var/datum/sprite_accessory/gradient = GLOB.hair_gradients_list[grad_style]
+						var/icon/temp = icon(gradient.icon, gradient.icon_state)
+						var/icon/temp_hair = icon(hair_file, hair_state)
+						temp.Blend(temp_hair, ICON_ADD)
+						gradient_overlay.icon = temp
+						gradient_overlay.color = "#" + grad_color
+
 				else
 					hair_overlay.color = forced_colour
+
 				hair_overlay.alpha = hair_alpha
 				if(OFFSET_FACE in H.dna.species.offset_features)
 					hair_overlay.pixel_x += H.dna.species.offset_features[OFFSET_FACE][1]
 					hair_overlay.pixel_y += H.dna.species.offset_features[OFFSET_FACE][2]
 		if(hair_overlay.icon)
+			var/mutable_appearance/hair_em_block = mutable_appearance(hair_overlay.icon, hair_overlay.icon_state, plane = EMISSIVE_PLANE, alpha = hair_alpha, appearance_flags = KEEP_APART)
+			hair_em_block.color = GLOB.em_block_color
+			hair_overlay.overlays += hair_em_block
+
 			standing += hair_overlay
+			standing += gradient_overlay
 
 	if(standing.len)
 		H.overlays_standing[HAIR_LAYER] = standing
@@ -630,25 +668,25 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * Handles lipstick, having no eyes, eye color, undergarnments like underwear, undershirts, and socks, and body layers.
  * Calls [handle_mutant_bodyparts][/datum/species/proc/handle_mutant_bodyparts]
  * Arguments:
- * * H - Human, whoever we're handling the body for
+ * * species_human - Human, whoever we're handling the body for
  */
 //SKYRAT EDIT REMOVAL BEGIN - CUSTOMIZATION (moved to modular)
 /*
-/datum/species/proc/handle_body(mob/living/carbon/human/H)
-	H.remove_overlay(BODY_LAYER)
+/datum/species/proc/handle_body(mob/living/carbon/human/species_human)
+	species_human.remove_overlay(BODY_LAYER)
 
 	var/list/standing = list()
 
-	var/obj/item/bodypart/head/HD = H.get_bodypart(BODY_ZONE_HEAD)
+	var/obj/item/bodypart/head/noggin = species_human.get_bodypart(BODY_ZONE_HEAD)
 
-	if(HD && !(HAS_TRAIT(H, TRAIT_HUSK)))
+	if(noggin && !(HAS_TRAIT(species_human, TRAIT_HUSK)))
 		// lipstick
-		if(H.lip_style && (LIPS in species_traits))
-			var/mutable_appearance/lip_overlay = mutable_appearance('icons/mob/human_face.dmi', "lips_[H.lip_style]", -BODY_LAYER)
-			lip_overlay.color = H.lip_color
-			if(OFFSET_FACE in H.dna.species.offset_features)
-				lip_overlay.pixel_x += H.dna.species.offset_features[OFFSET_FACE][1]
-				lip_overlay.pixel_y += H.dna.species.offset_features[OFFSET_FACE][2]
+		if(species_human.lip_style && (LIPS in species_traits))
+			var/mutable_appearance/lip_overlay = mutable_appearance('icons/mob/human_face.dmi', "lips_[species_human.lip_style]", -BODY_LAYER)
+			lip_overlay.color = species_human.lip_color
+			if(OFFSET_FACE in species_human.dna.species.offset_features)
+				lip_overlay.pixel_x += species_human.dna.species.offset_features[OFFSET_FACE][1]
+				lip_overlay.pixel_y += species_human.dna.species.offset_features[OFFSET_FACE][2]
 			standing += lip_overlay
 
 		// eyes
@@ -665,18 +703,44 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 				eye_overlay.pixel_x += H.dna.species.offset_features[OFFSET_FACE][1]
 				eye_overlay.pixel_y += H.dna.species.offset_features[OFFSET_FACE][2]
 			standing += eye_overlay
-
+			var/obj/item/organ/eyes/eye_organ = species_human.getorganslot(ORGAN_SLOT_EYES)
+			var/mutable_appearance/no_eyeslay
+			var/list/eye_overlays
+			var/obscured = species_human.check_obscured_slots(TRUE) //eyes that shine in the dark shouldn't show when you have glasses
+			var/add_pixel_x = 0
+			var/add_pixel_y = 0
+			//cut any possible vis overlays
+			if(body_vis_overlays.len)
+				SSvis_overlays.remove_vis_overlay(species_human, body_vis_overlays)
+			if(OFFSET_FACE in species_human.dna.species.offset_features)
+				add_pixel_x = species_human.dna.species.offset_features[OFFSET_FACE][1]
+				add_pixel_y = species_human.dna.species.offset_features[OFFSET_FACE][2]
+			if(!eye_organ)
+				no_eyeslay = mutable_appearance('icons/mob/human_face.dmi', "eyes_missing", -BODY_LAYER)
+				no_eyeslay.pixel_x += add_pixel_x
+				no_eyeslay.pixel_y += add_pixel_y
+				standing += no_eyeslay
+			if(!no_eyeslay)//we need eyes
+				eye_overlays += mutable_appearance('icons/mob/human_face.dmi', eye_organ.eye_icon_state, -BODY_LAYER)
+				if(eye_organ.overlay_ignore_lighting && !(obscured & ITEM_SLOT_EYES))
+					eye_overlays += emissive_appearance('icons/mob/human_face.dmi', eye_organ.eye_icon_state, -BODY_LAYER)
+				for(var/mutable_appearance/eye_overlay as anything in eye_overlays)
+					eye_overlay.pixel_x += add_pixel_x
+					eye_overlay.pixel_y += add_pixel_y
+					if((EYECOLOR in species_traits) && eye_organ)
+						eye_overlay.color = "#" + species_human.eye_color
+					standing += eye_overlay
 	// organic body markings
 	if(HAS_MARKINGS in species_traits)
-		var/obj/item/bodypart/chest/chest = H.get_bodypart(BODY_ZONE_CHEST)
-		var/obj/item/bodypart/r_arm/right_arm = H.get_bodypart(BODY_ZONE_R_ARM)
-		var/obj/item/bodypart/l_arm/left_arm = H.get_bodypart(BODY_ZONE_L_ARM)
-		var/obj/item/bodypart/r_leg/right_leg = H.get_bodypart(BODY_ZONE_R_LEG)
-		var/obj/item/bodypart/l_leg/left_leg = H.get_bodypart(BODY_ZONE_L_LEG)
-		var/datum/sprite_accessory/markings = GLOB.moth_markings_list[H.dna.features["moth_markings"]]
+		var/obj/item/bodypart/chest/chest = species_human.get_bodypart(BODY_ZONE_CHEST)
+		var/obj/item/bodypart/r_arm/right_arm = species_human.get_bodypart(BODY_ZONE_R_ARM)
+		var/obj/item/bodypart/l_arm/left_arm = species_human.get_bodypart(BODY_ZONE_L_ARM)
+		var/obj/item/bodypart/r_leg/right_leg = species_human.get_bodypart(BODY_ZONE_R_LEG)
+		var/obj/item/bodypart/l_leg/left_leg = species_human.get_bodypart(BODY_ZONE_L_LEG)
+		var/datum/sprite_accessory/markings = GLOB.moth_markings_list[species_human.dna.features["moth_markings"]]
 
-		if(!HAS_TRAIT(H, TRAIT_HUSK))
-			if(HD && (HD.status != BODYPART_ROBOTIC))
+		if(!HAS_TRAIT(species_human, TRAIT_HUSK))
+			if(noggin && (noggin.status != BODYPART_ROBOTIC))
 				var/mutable_appearance/markings_head_overlay = mutable_appearance(markings.icon, "[markings.icon_state]_head", -BODY_LAYER)
 				standing += markings_head_overlay
 
@@ -702,36 +766,36 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 	//Underwear, Undershirts & Socks
 	if(!(NO_UNDERWEAR in species_traits))
-		if(H.underwear)
-			var/datum/sprite_accessory/underwear/underwear = GLOB.underwear_list[H.underwear]
+		if(species_human.underwear)
+			var/datum/sprite_accessory/underwear/underwear = GLOB.underwear_list[species_human.underwear]
 			var/mutable_appearance/underwear_overlay
 			if(underwear)
-				if(H.dna.species.sexes && H.body_type == FEMALE && (underwear.gender == MALE))
+				if(species_human.dna.species.sexes && species_human.body_type == FEMALE && (underwear.gender == MALE))
 					underwear_overlay = wear_female_version(underwear.icon_state, underwear.icon, BODY_LAYER, FEMALE_UNIFORM_FULL)
 				else
 					underwear_overlay = mutable_appearance(underwear.icon, underwear.icon_state, -BODY_LAYER)
 				if(!underwear.use_static)
-					underwear_overlay.color = "#" + H.underwear_color
+					underwear_overlay.color = "#" + species_human.underwear_color
 				standing += underwear_overlay
 
-		if(H.undershirt)
-			var/datum/sprite_accessory/undershirt/undershirt = GLOB.undershirt_list[H.undershirt]
+		if(species_human.undershirt)
+			var/datum/sprite_accessory/undershirt/undershirt = GLOB.undershirt_list[species_human.undershirt]
 			if(undershirt)
-				if(H.dna.species.sexes && H.body_type == FEMALE)
+				if(species_human.dna.species.sexes && species_human.body_type == FEMALE)
 					standing += wear_female_version(undershirt.icon_state, undershirt.icon, BODY_LAYER)
 				else
 					standing += mutable_appearance(undershirt.icon, undershirt.icon_state, -BODY_LAYER)
 
-		if(H.socks && H.num_legs >= 2 && !(DIGITIGRADE in species_traits))
-			var/datum/sprite_accessory/socks/socks = GLOB.socks_list[H.socks]
+		if(species_human.socks && species_human.num_legs >= 2 && !(DIGITIGRADE in species_traits))
+			var/datum/sprite_accessory/socks/socks = GLOB.socks_list[species_human.socks]
 			if(socks)
 				standing += mutable_appearance(socks.icon, socks.icon_state, -BODY_LAYER)
 
 	if(standing.len)
-		H.overlays_standing[BODY_LAYER] = standing
+		species_human.overlays_standing[BODY_LAYER] = standing
 
-	H.apply_overlay(BODY_LAYER)
-	handle_mutant_bodyparts(H)
+	species_human.apply_overlay(BODY_LAYER)
+	handle_mutant_bodyparts(species_human)
 */
 //SKYRAT EDIT REMOVAL END
 
@@ -746,160 +810,159 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  */
 //SKYRAT EDIT REMOVAL BEGIN - CUSTOMIZATION (moved to modular)
 /*
-/datum/species/proc/handle_mutant_bodyparts(mob/living/carbon/human/H, forced_colour)
+/datum/species/proc/handle_mutant_bodyparts(mob/living/carbon/human/source, forced_colour)
 	var/list/bodyparts_to_add = mutant_bodyparts.Copy()
 	var/list/relevent_layers = list(BODY_BEHIND_LAYER, BODY_ADJ_LAYER, BODY_FRONT_LAYER)
-	var/list/standing	= list()
+	var/list/standing = list()
 
-	H.remove_overlay(BODY_BEHIND_LAYER)
-	H.remove_overlay(BODY_ADJ_LAYER)
-	H.remove_overlay(BODY_FRONT_LAYER)
+	source.remove_overlay(BODY_BEHIND_LAYER)
+	source.remove_overlay(BODY_ADJ_LAYER)
+	source.remove_overlay(BODY_FRONT_LAYER)
 
 	if(!mutant_bodyparts)
 		return
 
-	var/obj/item/bodypart/head/HD = H.get_bodypart(BODY_ZONE_HEAD)
+	var/obj/item/bodypart/head/noggin = source.get_bodypart(BODY_ZONE_HEAD)
 
 	if(mutant_bodyparts["tail_lizard"])
-		if(H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "tail_lizard"
 
 	if(mutant_bodyparts["waggingtail_lizard"])
-		if(H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "waggingtail_lizard"
 		else if (mutant_bodyparts["tail_lizard"])
 			bodyparts_to_add -= "waggingtail_lizard"
 
 	if(mutant_bodyparts["tail_human"])
-		if(H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "tail_human"
 
 	if("tail_monkey" in mutant_bodyparts)
-		if(H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "tail_monkey"
 
 
 	if(mutant_bodyparts["waggingtail_human"])
-		if(H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "waggingtail_human"
 		else if (mutant_bodyparts["tail_human"])
 			bodyparts_to_add -= "waggingtail_human"
 
 	if(mutant_bodyparts["spines"])
-		if(!H.dna.features["spines"] || H.dna.features["spines"] == "None" || H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(!source.dna.features["spines"] || source.dna.features["spines"] == "None" || source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "spines"
 
 	if(mutant_bodyparts["waggingspines"])
-		if(!H.dna.features["spines"] || H.dna.features["spines"] == "None" || H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT))
+		if(!source.dna.features["spines"] || source.dna.features["spines"] == "None" || source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT))
 			bodyparts_to_add -= "waggingspines"
 		else if (mutant_bodyparts["tail"])
 			bodyparts_to_add -= "waggingspines"
 
 	if(mutant_bodyparts["snout"]) //Take a closer look at that snout!
-		if((H.wear_mask && (H.wear_mask.flags_inv & HIDESNOUT)) || (H.head && (H.head.flags_inv & HIDESNOUT)) || !HD || HD.status == BODYPART_ROBOTIC)
+		if((source.wear_mask && (source.wear_mask.flags_inv & HIDESNOUT)) || (source.head && (source.head.flags_inv & HIDESNOUT)) || !noggin || noggin.status == BODYPART_ROBOTIC)
 			bodyparts_to_add -= "snout"
 
 	if(mutant_bodyparts["frills"])
-		if(!H.dna.features["frills"] || H.dna.features["frills"] == "None" || H.head && (H.head.flags_inv & HIDEEARS) || !HD || HD.status == BODYPART_ROBOTIC)
+		if(!source.dna.features["frills"] || source.dna.features["frills"] == "None" || source.head && (source.head.flags_inv & HIDEEARS) || !noggin || noggin.status == BODYPART_ROBOTIC)
 			bodyparts_to_add -= "frills"
 
 	if(mutant_bodyparts["horns"])
-		if(!H.dna.features["horns"] || H.dna.features["horns"] == "None" || H.head && (H.head.flags_inv & HIDEHAIR) || (H.wear_mask && (H.wear_mask.flags_inv & HIDEHAIR)) || !HD || HD.status == BODYPART_ROBOTIC)
+		if(!source.dna.features["horns"] || source.dna.features["horns"] == "None" || source.head && (source.head.flags_inv & HIDEHAIR) || (source.wear_mask && (source.wear_mask.flags_inv & HIDEHAIR)) || !noggin || noggin.status == BODYPART_ROBOTIC)
 			bodyparts_to_add -= "horns"
 
 	if(mutant_bodyparts["ears"])
-		if(!H.dna.features["ears"] || H.dna.features["ears"] == "None" || H.head && (H.head.flags_inv & HIDEHAIR) || (H.wear_mask && (H.wear_mask.flags_inv & HIDEHAIR)) || !HD || HD.status == BODYPART_ROBOTIC)
+		if(!source.dna.features["ears"] || source.dna.features["ears"] == "None" || source.head && (source.head.flags_inv & HIDEHAIR) || (source.wear_mask && (source.wear_mask.flags_inv & HIDEHAIR)) || !noggin || noggin.status == BODYPART_ROBOTIC)
 			bodyparts_to_add -= "ears"
 
 	if(mutant_bodyparts["wings"])
-		if(!H.dna.features["wings"] || H.dna.features["wings"] == "None" || (H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT) && (!H.wear_suit.species_exception || !is_type_in_list(src, H.wear_suit.species_exception))))
+		if(!source.dna.features["wings"] || source.dna.features["wings"] == "None" || (source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT) && (!source.wear_suit.species_exception || !is_type_in_list(src, source.wear_suit.species_exception))))
 			bodyparts_to_add -= "wings"
 
 	if(mutant_bodyparts["wings_open"])
-		if(H.wear_suit && (H.wear_suit.flags_inv & HIDEJUMPSUIT) && (!H.wear_suit.species_exception || !is_type_in_list(src, H.wear_suit.species_exception)))
+		if(source.wear_suit && (source.wear_suit.flags_inv & HIDEJUMPSUIT) && (!source.wear_suit.species_exception || !is_type_in_list(src, source.wear_suit.species_exception)))
 			bodyparts_to_add -= "wings_open"
 		else if (mutant_bodyparts["wings"])
 			bodyparts_to_add -= "wings_open"
 
 	if(mutant_bodyparts["moth_antennae"])
-		if(!H.dna.features["moth_antennae"] || H.dna.features["moth_antennae"] == "None" || !HD)
+		if(!source.dna.features["moth_antennae"] || source.dna.features["moth_antennae"] == "None" || !noggin)
 			bodyparts_to_add -= "moth_antennae"
 
 	//Digitigrade legs are stuck in the phantom zone between true limbs and mutant bodyparts. Mainly it just needs more agressive updating than most limbs.
 	var/update_needed = FALSE
 	var/not_digitigrade = TRUE
-	for(var/X in H.bodyparts)
-		var/obj/item/bodypart/O = X
-		if(!O.use_digitigrade)
+	for(var/obj/item/bodypart/bodypart as anything in source.bodyparts)
+		if(!bodypart.use_digitigrade)
 			continue
 		not_digitigrade = FALSE
 		if(!(DIGITIGRADE in species_traits)) //Someone cut off a digitigrade leg and tacked it on
 			species_traits += DIGITIGRADE
 		var/should_be_squished = FALSE
-		if(H.wear_suit && ((H.wear_suit.flags_inv & HIDEJUMPSUIT) || (H.wear_suit.body_parts_covered & LEGS)) || (H.w_uniform && (H.w_uniform.body_parts_covered & LEGS)))
+		if(source.wear_suit && ((source.wear_suit.flags_inv & HIDEJUMPSUIT) || (source.wear_suit.body_parts_covered & LEGS)) || (source.w_uniform && (source.w_uniform.body_parts_covered & LEGS)))
 			should_be_squished = TRUE
-		if(O.use_digitigrade == FULL_DIGITIGRADE && should_be_squished)
-			O.use_digitigrade = SQUISHED_DIGITIGRADE
+		if(bodypart.use_digitigrade == FULL_DIGITIGRADE && should_be_squished)
+			bodypart.use_digitigrade = SQUISHED_DIGITIGRADE
 			update_needed = TRUE
-		else if(O.use_digitigrade == SQUISHED_DIGITIGRADE && !should_be_squished)
-			O.use_digitigrade = FULL_DIGITIGRADE
+		else if(bodypart.use_digitigrade == SQUISHED_DIGITIGRADE && !should_be_squished)
+			bodypart.use_digitigrade = FULL_DIGITIGRADE
 			update_needed = TRUE
 	if(update_needed)
-		H.update_body_parts()
+		source.update_body_parts()
 	if(not_digitigrade && (DIGITIGRADE in species_traits)) //Curse is lifted
 		species_traits -= DIGITIGRADE
 
 	if(!bodyparts_to_add)
 		return
 
-	var/g = (H.body_type == FEMALE) ? "f" : "m"
+	var/g = (source.body_type == FEMALE) ? "f" : "m"
 
 	for(var/layer in relevent_layers)
 		var/layertext = mutant_bodyparts_layertext(layer)
 
 		for(var/bodypart in bodyparts_to_add)
-			var/datum/sprite_accessory/S
+			var/datum/sprite_accessory/accessory
 			switch(bodypart)
 				if("tail_lizard")
-					S = GLOB.tails_list_lizard[H.dna.features["tail_lizard"]]
+					accessory = GLOB.tails_list_lizard[source.dna.features["tail_lizard"]]
 				if("waggingtail_lizard")
-					S = GLOB.animated_tails_list_lizard[H.dna.features["tail_lizard"]]
+					accessory = GLOB.animated_tails_list_lizard[source.dna.features["tail_lizard"]]
 				if("tail_human")
-					S = GLOB.tails_list_human[H.dna.features["tail_human"]]
+					accessory = GLOB.tails_list_human[source.dna.features["tail_human"]]
 				if("waggingtail_human")
-					S = GLOB.animated_tails_list_human[H.dna.features["tail_human"]]
+					accessory = GLOB.animated_tails_list_human[source.dna.features["tail_human"]]
 				if("spines")
-					S = GLOB.spines_list[H.dna.features["spines"]]
+					accessory = GLOB.spines_list[source.dna.features["spines"]]
 				if("waggingspines")
-					S = GLOB.animated_spines_list[H.dna.features["spines"]]
+					accessory = GLOB.animated_spines_list[source.dna.features["spines"]]
 				if("snout")
-					S = GLOB.snouts_list[H.dna.features["snout"]]
+					accessory = GLOB.snouts_list[source.dna.features["snout"]]
 				if("frills")
-					S = GLOB.frills_list[H.dna.features["frills"]]
+					accessory = GLOB.frills_list[source.dna.features["frills"]]
 				if("horns")
-					S = GLOB.horns_list[H.dna.features["horns"]]
+					accessory = GLOB.horns_list[source.dna.features["horns"]]
 				if("ears")
-					S = GLOB.ears_list[H.dna.features["ears"]]
+					accessory = GLOB.ears_list[source.dna.features["ears"]]
 				if("body_markings")
-					S = GLOB.body_markings_list[H.dna.features["body_markings"]]
+					accessory = GLOB.body_markings_list[source.dna.features["body_markings"]]
 				if("wings")
-					S = GLOB.wings_list[H.dna.features["wings"]]
+					accessory = GLOB.wings_list[source.dna.features["wings"]]
 				if("wingsopen")
-					S = GLOB.wings_open_list[H.dna.features["wings"]]
+					accessory = GLOB.wings_open_list[source.dna.features["wings"]]
 				if("legs")
-					S = GLOB.legs_list[H.dna.features["legs"]]
+					accessory = GLOB.legs_list[source.dna.features["legs"]]
 				if("moth_wings")
-					S = GLOB.moth_wings_list[H.dna.features["moth_wings"]]
+					accessory = GLOB.moth_wings_list[source.dna.features["moth_wings"]]
 				if("moth_antennae")
-					S = GLOB.moth_antennae_list[H.dna.features["moth_antennae"]]
+					accessory = GLOB.moth_antennae_list[source.dna.features["moth_antennae"]]
 				if("caps")
-					S = GLOB.caps_list[H.dna.features["caps"]]
+					accessory = GLOB.caps_list[source.dna.features["caps"]]
 				if("tail_monkey")
-					S = GLOB.tails_list_monkey[H.dna.features["tail_monkey"]]
-			if(!S || S.icon_state == "none")
+					accessory = GLOB.tails_list_monkey[source.dna.features["tail_monkey"]]
+			if(!accessory || accessory.icon_state == "none")
 				continue
 
-			var/mutable_appearance/accessory_overlay = mutable_appearance(S.icon, layer = -layer)
+			var/mutable_appearance/accessory_overlay = mutable_appearance(accessory.icon, layer = -layer)
 
 			//A little rename so we don't have to use tail_lizard or tail_human when naming the sprites.
 			if(bodypart == "tail_lizard" || bodypart == "tail_human" || bodypart == "tail_monkey")
@@ -907,55 +970,60 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			else if(bodypart == "waggingtail_lizard" || bodypart == "waggingtail_human")
 				bodypart = "waggingtail"
 
-			if(S.gender_specific)
-				accessory_overlay.icon_state = "[g]_[bodypart]_[S.icon_state]_[layertext]"
+			if(accessory.gender_specific)
+				accessory_overlay.icon_state = "[g]_[bodypart]_[accessory.icon_state]_[layertext]"
 			else
-				accessory_overlay.icon_state = "m_[bodypart]_[S.icon_state]_[layertext]"
+				accessory_overlay.icon_state = "m_[bodypart]_[accessory.icon_state]_[layertext]"
 
-			if(S.center)
-				accessory_overlay = center_image(accessory_overlay, S.dimension_x, S.dimension_y)
+			if(accessory.em_block)
+				var/mutable_appearance/em_overlay = mutable_appearance(accessory_overlay.icon, accessory_overlay.icon_state, plane = EMISSIVE_PLANE, alpha = accessory_overlay.alpha, appearance_flags = KEEP_APART)
+				em_overlay.color = GLOB.em_block_color
+				accessory_overlay.overlays |= em_overlay
 
-			if(!(HAS_TRAIT(H, TRAIT_HUSK)))
+			if(accessory.center)
+				accessory_overlay = center_image(accessory_overlay, accessory.dimension_x, accessory.dimension_y)
+
+			if(!(HAS_TRAIT(source, TRAIT_HUSK)))
 				if(!forced_colour)
-					switch(S.color_src)
+					switch(accessory.color_src)
 						if(MUTCOLORS)
 							if(fixed_mut_color)
 								accessory_overlay.color = "#[fixed_mut_color]"
 							else
-								accessory_overlay.color = "#[H.dna.features["mcolor"]]"
+								accessory_overlay.color = "#[source.dna.features["mcolor"]]"
 						if(HAIR)
 							if(hair_color == "mutcolor")
-								accessory_overlay.color = "#[H.dna.features["mcolor"]]"
+								accessory_overlay.color = "#[source.dna.features["mcolor"]]"
 							else if(hair_color == "fixedmutcolor")
 								accessory_overlay.color = "#[fixed_mut_color]"
 							else
-								accessory_overlay.color = "#[H.hair_color]"
+								accessory_overlay.color = "#[source.hair_color]"
 						if(FACEHAIR)
-							accessory_overlay.color = "#[H.facial_hair_color]"
+							accessory_overlay.color = "#[source.facial_hair_color]"
 						if(EYECOLOR)
-							accessory_overlay.color = "#[H.eye_color]"
+							accessory_overlay.color = "#[source.eye_color]"
 				else
 					accessory_overlay.color = forced_colour
 			standing += accessory_overlay
 
-			if(S.hasinner)
-				var/mutable_appearance/inner_accessory_overlay = mutable_appearance(S.icon, layer = -layer)
-				if(S.gender_specific)
-					inner_accessory_overlay.icon_state = "[g]_[bodypart]inner_[S.icon_state]_[layertext]"
+			if(accessory.hasinner)
+				var/mutable_appearance/inner_accessory_overlay = mutable_appearance(accessory.icon, layer = -layer)
+				if(accessory.gender_specific)
+					inner_accessory_overlay.icon_state = "[g]_[bodypart]inner_[accessory.icon_state]_[layertext]"
 				else
-					inner_accessory_overlay.icon_state = "m_[bodypart]inner_[S.icon_state]_[layertext]"
+					inner_accessory_overlay.icon_state = "m_[bodypart]inner_[accessory.icon_state]_[layertext]"
 
-				if(S.center)
-					inner_accessory_overlay = center_image(inner_accessory_overlay, S.dimension_x, S.dimension_y)
+				if(accessory.center)
+					inner_accessory_overlay = center_image(inner_accessory_overlay, accessory.dimension_x, accessory.dimension_y)
 
 				standing += inner_accessory_overlay
 
-		H.overlays_standing[layer] = standing.Copy()
+		source.overlays_standing[layer] = standing.Copy()
 		standing = list()
 
-	H.apply_overlay(BODY_BEHIND_LAYER)
-	H.apply_overlay(BODY_ADJ_LAYER)
-	H.apply_overlay(BODY_FRONT_LAYER)
+	source.apply_overlay(BODY_BEHIND_LAYER)
+	source.apply_overlay(BODY_ADJ_LAYER)
+	source.apply_overlay(BODY_FRONT_LAYER)
 */
 //SKYRAT EDIT REMOVAL END
 
@@ -971,23 +1039,40 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 		if(BODY_FRONT_LAYER)
 			return "FRONT"
 
+///Proc that will randomise the hair, or primary appearance element (i.e. for moths wings) of a species' associated mob
+/datum/species/proc/randomize_main_appearance_element(mob/living/carbon/human/human_mob)
+	//SKYRAT EDIT ADDITION BEGIN
+	for(var/key in mutant_bodyparts) //Randomize currently attached mutant bodyparts, organs should update when they need to (detachment)
+		var/datum/sprite_accessory/SP = random_accessory_of_key_for_species(key, src)
+		var/list/color_list = SP.get_default_color(human_mob.dna.features, src)
+		var/list/final_list = list()
+		final_list[MUTANT_INDEX_NAME] = SP.name
+		final_list[MUTANT_INDEX_COLOR_LIST] = color_list
+		mutant_bodyparts[key] = final_list
+	human_mob.update_mutant_bodyparts()
+	//SKYRAT EDIT ADDITION END
+	human_mob.hairstyle = random_hairstyle(human_mob.gender)
+	human_mob.update_hair()
 
-/datum/species/proc/spec_life(mob/living/carbon/human/H)
+///Proc that will randomise the underwear (i.e. top, pants and socks) of a species' associated mob
+/datum/species/proc/randomize_active_underwear(mob/living/carbon/human/human_mob)
+	human_mob.undershirt = random_undershirt(human_mob.gender)
+	human_mob.underwear = random_underwear(human_mob.gender)
+	human_mob.socks = random_socks(human_mob.gender)
+	human_mob.update_body()
+
+/datum/species/proc/spec_life(mob/living/carbon/human/H, delta_time, times_fired)
 	if(HAS_TRAIT(H, TRAIT_NOBREATH))
 		H.setOxyLoss(0)
 		H.losebreath = 0
 
 		var/takes_crit_damage = (!HAS_TRAIT(H, TRAIT_NOCRITDAMAGE))
-		if((H.health < H.crit_threshold) && takes_crit_damage)
-			H.adjustBruteLoss(1)
+		if((H.health < H.crit_threshold) && takes_crit_damage && H.stat != DEAD)
+			H.adjustBruteLoss(0.5 * delta_time)
 	if(flying_species)
 		HandleFlight(H)
 
 /datum/species/proc/spec_death(gibbed, mob/living/carbon/human/H)
-	return
-
-/datum/species/proc/auto_equip(mob/living/carbon/human/H)
-	// handles the equipping of species-specific gear
 	return
 
 /datum/species/proc/can_equip(obj/item/I, slot, disable_warning, mob/living/carbon/human/H, bypass_equip_delay_self = FALSE)
@@ -1037,7 +1122,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			/*
 			if(DIGITIGRADE in species_traits)
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>The footwear around here isn't compatible with your feet!</span>")
+					to_chat(H, span_warning("The footwear around here isn't compatible with your feet!"))
 				return FALSE
 			*/
 			//SKYRAT EDIT REMOVAL END
@@ -1047,7 +1132,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 			if(!H.w_uniform && !nojumpsuit && (!O || O.status != BODYPART_ROBOTIC))
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>You need a jumpsuit before you can attach this [I.name]!</span>")
+					to_chat(H, span_warning("You need a jumpsuit before you can attach this [I.name]!"))
 				return FALSE
 			return equip_delay_self_check(I, H, bypass_equip_delay_self)
 		if(ITEM_SLOT_EYES)
@@ -1071,7 +1156,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			var/obj/item/bodypart/O = H.get_bodypart(BODY_ZONE_CHEST)
 			if(!H.w_uniform && !nojumpsuit && (!O || O.status != BODYPART_ROBOTIC))
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>You need a jumpsuit before you can attach this [I.name]!</span>")
+					to_chat(H, span_warning("You need a jumpsuit before you can attach this [I.name]!"))
 				return FALSE
 			return equip_delay_self_check(I, H, bypass_equip_delay_self)
 		if(ITEM_SLOT_LPOCKET)
@@ -1084,7 +1169,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 			if(!H.w_uniform && !nojumpsuit && (!O || O.status != BODYPART_ROBOTIC))
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>You need a jumpsuit before you can attach this [I.name]!</span>")
+					to_chat(H, span_warning("You need a jumpsuit before you can attach this [I.name]!"))
 				return FALSE
 			return TRUE
 		if(ITEM_SLOT_RPOCKET)
@@ -1097,7 +1182,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 			if(!H.w_uniform && !nojumpsuit && (!O || O.status != BODYPART_ROBOTIC))
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>You need a jumpsuit before you can attach this [I.name]!</span>")
+					to_chat(H, span_warning("You need a jumpsuit before you can attach this [I.name]!"))
 				return FALSE
 			return TRUE
 		if(ITEM_SLOT_SUITSTORE)
@@ -1105,15 +1190,15 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 				return FALSE
 			if(!H.wear_suit)
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>You need a suit before you can attach this [I.name]!</span>")
+					to_chat(H, span_warning("You need a suit before you can attach this [I.name]!"))
 				return FALSE
 			if(!H.wear_suit.allowed)
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>You somehow have a suit with no defined allowed items for suit storage, stop that.</span>")
+					to_chat(H, span_warning("You somehow have a suit with no defined allowed items for suit storage, stop that."))
 				return FALSE
 			if(I.w_class > WEIGHT_CLASS_BULKY)
 				if(!disable_warning)
-					to_chat(H, "<span class='warning'>The [I.name] is too big to attach!</span>") //should be src?
+					to_chat(H, span_warning("The [I.name] is too big to attach!")) //should be src?
 				return FALSE
 			if( istype(I, /obj/item/pda) || istype(I, /obj/item/pen) || is_type_in_list(I, H.wear_suit.allowed) )
 				return TRUE
@@ -1134,12 +1219,52 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			if(H.back && SEND_SIGNAL(H.back, COMSIG_TRY_STORAGE_CAN_INSERT, I, H, TRUE))
 				return TRUE
 			return FALSE
+
+		//SKYRAT EDIT ADDITION BEGIN - ERP_SLOT_SYSTEM
+		if(ITEM_SLOT_VAGINA)
+			if(H.is_bottomless())
+				if(H.getorganslot(ORGAN_SLOT_VAGINA))
+					for(var/L in GLOB.vagina_items_allowed)
+						if(istype(I,L))
+							return equip_delay_self_check(I, H, bypass_equip_delay_self)
+						continue
+					return FALSE
+				return FALSE
+			return FALSE
+		if(ITEM_SLOT_ANUS)
+			if(H.is_bottomless())
+				for(var/L in GLOB.anus_items_allowed)
+					if(istype(I,L))
+						return equip_delay_self_check(I, H, bypass_equip_delay_self)
+					continue
+				return FALSE
+			return FALSE
+		if(ITEM_SLOT_NIPPLES)
+			if(H.is_topless())
+				for(var/L in GLOB.nipples_items_allowed)
+					if(istype(I,L))
+						return equip_delay_self_check(I, H, bypass_equip_delay_self)
+					continue
+				return FALSE
+			return FALSE
+		if(ITEM_SLOT_PENIS)
+			if(H.is_bottomless())
+				if(H.getorganslot(ORGAN_SLOT_PENIS))
+					for(var/L in GLOB.peins_items_allowed)
+						if(istype(I,L))
+							return equip_delay_self_check(I, H, bypass_equip_delay_self)
+						continue
+					return FALSE
+				return FALSE
+			return FALSE
+		//SKYRAT EDIT ADDITION END
+
 	return FALSE //Unsupported slot
 
 /datum/species/proc/equip_delay_self_check(obj/item/I, mob/living/carbon/human/H, bypass_equip_delay_self)
 	if(!I.equip_delay_self || bypass_equip_delay_self)
 		return TRUE
-	H.visible_message("<span class='notice'>[H] start putting on [I]...</span>", "<span class='notice'>You start putting on [I]...</span>")
+	H.visible_message(span_notice("[H] start putting on [I]..."), span_notice("You start putting on [I]..."))
 	return do_after(H, I.equip_delay_self, target = H)
 
 /datum/species/proc/before_equip_job(datum/job/J, mob/living/carbon/human/H)
@@ -1148,13 +1273,15 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 /datum/species/proc/after_equip_job(datum/job/J, mob/living/carbon/human/H)
 	H.update_mutant_bodyparts()
 
-/datum/species/proc/handle_chemicals(datum/reagent/chem, mob/living/carbon/human/H)
+/datum/species/proc/handle_chemicals(datum/reagent/chem, mob/living/carbon/human/H, delta_time, times_fired)
 	if(chem.type == exotic_blood)
 		H.blood_volume = min(H.blood_volume + round(chem.volume, 0.1), BLOOD_VOLUME_MAXIMUM)
 		H.reagents.del_reagent(chem.type)
 		return TRUE
-	if(chem.overdose_threshold && chem.volume >= chem.overdose_threshold)
+	if(!chem.overdosed && chem.overdose_threshold && chem.volume >= chem.overdose_threshold)
 		chem.overdosed = TRUE
+		chem.overdose_start(H)
+		log_game("[key_name(H)] has started overdosing on [chem.name] at [chem.volume] units.")
 
 /datum/species/proc/check_species_weakness(obj/item, mob/living/attacker)
 	return 1 //This is not a boolean, it's the multiplier for the damage that the user takes from the item. The force of the item is multiplied by this value
@@ -1169,136 +1296,56 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	outfit_important_for_life= new()
 	outfit_important_for_life.equip(human_to_equip)
 
-////////
-//LIFE//
-////////
-/datum/species/proc/handle_digestion(mob/living/carbon/human/H)
-	if(HAS_TRAIT(H, TRAIT_NOHUNGER))
-		return //hunger is for BABIES
-
-	//The fucking TRAIT_FAT mutation is the dumbest shit ever. It makes the code so difficult to work with
-	if(HAS_TRAIT_FROM(H, TRAIT_FAT, OBESITY))//I share your pain, past coder.
-		if(H.overeatduration < 100)
-			to_chat(H, "<span class='notice'>You feel fit again!</span>")
-			REMOVE_TRAIT(H, TRAIT_FAT, OBESITY)
-			H.remove_movespeed_modifier(/datum/movespeed_modifier/obesity)
-			H.update_inv_w_uniform()
-			H.update_inv_wear_suit()
-	else
-		if(H.overeatduration >= 100)
-			to_chat(H, "<span class='danger'>You suddenly feel blubbery!</span>")
-			ADD_TRAIT(H, TRAIT_FAT, OBESITY)
-			H.add_movespeed_modifier(/datum/movespeed_modifier/obesity)
-			H.update_inv_w_uniform()
-			H.update_inv_wear_suit()
-
-	// nutrition decrease and satiety
-	if (H.nutrition > 0 && H.stat != DEAD && !HAS_TRAIT(H, TRAIT_NOHUNGER))
-		// THEY HUNGER
-		var/hunger_rate = HUNGER_FACTOR
-		var/datum/component/mood/mood = H.GetComponent(/datum/component/mood)
-		if(mood && mood.sanity > SANITY_DISTURBED)
-			hunger_rate *= max(0.5, 1 - 0.002 * mood.sanity) //0.85 to 0.75
-		// Whether we cap off our satiety or move it towards 0
-		if(H.satiety > MAX_SATIETY)
-			H.satiety = MAX_SATIETY
-		else if(H.satiety > 0)
-			H.satiety--
-		else if(H.satiety < -MAX_SATIETY)
-			H.satiety = -MAX_SATIETY
-		else if(H.satiety < 0)
-			H.satiety++
-			if(prob(round(-H.satiety/40)))
-				H.Jitter(5)
-			hunger_rate = 3 * HUNGER_FACTOR
-		hunger_rate *= H.physiology.hunger_mod
-		H.adjust_nutrition(-hunger_rate)
-
-
-	if (H.nutrition > NUTRITION_LEVEL_FULL)
-		if(H.overeatduration < 600) //capped so people don't take forever to unfat
-			H.overeatduration++
-	else
-		if(H.overeatduration > 1)
-			H.overeatduration -= 2 //doubled the unfat rate
-
-	//metabolism change
-	if(H.nutrition > NUTRITION_LEVEL_FAT)
-		H.metabolism_efficiency = 1
-	else if(H.nutrition > NUTRITION_LEVEL_FED && H.satiety > 80)
-		if(H.metabolism_efficiency != 1.25 && !HAS_TRAIT(H, TRAIT_NOHUNGER))
-			to_chat(H, "<span class='notice'>You feel vigorous.</span>")
-			H.metabolism_efficiency = 1.25
-	else if(H.nutrition < NUTRITION_LEVEL_STARVING + 50)
-		if(H.metabolism_efficiency != 0.8)
-			to_chat(H, "<span class='notice'>You feel sluggish.</span>")
-		H.metabolism_efficiency = 0.8
-	else
-		if(H.metabolism_efficiency == 1.25)
-			to_chat(H, "<span class='notice'>You no longer feel vigorous.</span>")
-		H.metabolism_efficiency = 1
-
-	//Hunger slowdown for if mood isn't enabled
-	if(CONFIG_GET(flag/disable_human_mood))
-		if(!HAS_TRAIT(H, TRAIT_NOHUNGER))
-			var/hungry = (500 - H.nutrition) / 5 //So overeat would be 100 and default level would be 80
-			if(hungry >= 70)
-				H.add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/hunger, multiplicative_slowdown = (hungry / 50))
-			else if(isethereal(H))
-				var/datum/species/ethereal/E = H.dna.species
-				if(E.get_charge(H) <= ETHEREAL_CHARGE_NORMAL)
-					H.add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/hunger, multiplicative_slowdown = (1.5 * (1 - E.get_charge(H) / 100)))
-			else
-				H.remove_movespeed_modifier(/datum/movespeed_modifier/hunger)
-
-	switch(H.nutrition)
-		if(NUTRITION_LEVEL_FULL to INFINITY)
-			H.throw_alert("nutrition", /atom/movable/screen/alert/fat)
-		if(NUTRITION_LEVEL_HUNGRY to NUTRITION_LEVEL_FULL)
-			H.clear_alert("nutrition")
-		if(NUTRITION_LEVEL_STARVING to NUTRITION_LEVEL_HUNGRY)
-			H.throw_alert("nutrition", /atom/movable/screen/alert/hungry)
-		if(0 to NUTRITION_LEVEL_STARVING)
-			H.throw_alert("nutrition", /atom/movable/screen/alert/starving)
-
 /datum/species/proc/update_health_hud(mob/living/carbon/human/H)
 	return FALSE
 
-/datum/species/proc/handle_mutations_and_radiation(mob/living/carbon/human/H)
-	if(HAS_TRAIT(H, TRAIT_RADIMMUNE))
-		H.radiation = 0
+/**
+ * Species based handling for irradiation
+ *
+ * Arguments:
+ * - [source][/mob/living/carbon/human]: The mob requesting handling
+ * - delta_time: The amount of time that has passed since the last tick
+ * - times_fired: The number of times SSmobs has fired
+ */
+/datum/species/proc/handle_mutations_and_radiation(mob/living/carbon/human/source, delta_time, times_fired)
+	if(HAS_TRAIT(source, TRAIT_RADIMMUNE))
+		source.radiation = 0
 		return TRUE
 
 	. = FALSE
-	var/radiation = H.radiation
+	var/radiation = source.radiation
+	if(radiation > RAD_MOB_KNOCKDOWN && DT_PROB(RAD_MOB_KNOCKDOWN_PROB, delta_time))
+		if(!source.IsParalyzed())
+			source.emote("collapse")
+		source.Paralyze(RAD_MOB_KNOCKDOWN_AMOUNT)
+		to_chat(source, span_danger("You feel weak."))
 
-	if(radiation > RAD_MOB_KNOCKDOWN && prob(RAD_MOB_KNOCKDOWN_PROB))
-		if(!H.IsParalyzed())
-			H.emote("collapse")
-		H.Paralyze(RAD_MOB_KNOCKDOWN_AMOUNT)
-		to_chat(H, "<span class='danger'>You feel weak.</span>")
+	if(radiation > RAD_MOB_VOMIT && DT_PROB(RAD_MOB_VOMIT_PROB, delta_time))
+		source.vomit(10, TRUE)
 
-	if(radiation > RAD_MOB_VOMIT && prob(RAD_MOB_VOMIT_PROB))
-		H.vomit(10, TRUE)
+	if(radiation > RAD_MOB_MUTATE && DT_PROB(RAD_MOB_MUTATE_PROB, delta_time))
+		to_chat(source, span_danger("You mutate!"))
+		source.easy_randmut(NEGATIVE + MINOR_NEGATIVE)
+		source.emote("gasp")
+		source.domutcheck()
 
-	if(radiation > RAD_MOB_MUTATE)
-		if(prob(1))
-			to_chat(H, "<span class='danger'>You mutate!</span>")
-			H.easy_randmut(NEGATIVE+MINOR_NEGATIVE)
-			H.emote("gasp")
-			H.domutcheck()
+	if(radiation > RAD_MOB_HAIRLOSS && DT_PROB(RAD_MOB_HAIRLOSS_PROB, delta_time))
+		if(!(source.hairstyle == "Bald") && (HAIR in species_traits))
+			to_chat(source, span_danger("Your hair starts to fall out in clumps..."))
+			addtimer(CALLBACK(src, .proc/go_bald, source), 5 SECONDS)
 
-	if(radiation > RAD_MOB_HAIRLOSS)
-		if(prob(15) && !(H.hairstyle == "Bald") && (HAIR in species_traits))
-			to_chat(H, "<span class='danger'>Your hair starts to fall out in clumps...</span>")
-			addtimer(CALLBACK(src, .proc/go_bald, H), 50)
-
-/datum/species/proc/go_bald(mob/living/carbon/human/H)
-	if(QDELETED(H))	//may be called from a timer
+/**
+ * Makes the target human bald.
+ *
+ * Arguments:
+ * - [target][/mob/living/carbon/human]: The mob to make go bald.
+ */
+/datum/species/proc/go_bald(mob/living/carbon/human/target)
+	if(QDELETED(target)) //may be called from a timer
 		return
-	H.facial_hairstyle = "Shaved"
-	H.hairstyle = "Bald"
-	H.update_hair()
+	target.facial_hairstyle = "Shaved"
+	target.hairstyle = "Bald"
+	target.update_hair()
 
 //////////////////
 // ATTACK PROCS //
@@ -1323,11 +1370,11 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 /datum/species/proc/grab(mob/living/carbon/human/user, mob/living/carbon/human/target, datum/martial_art/attacker_style)
 	if(target.check_block())
-		target.visible_message("<span class='warning'>[target] blocks [user]'s grab!</span>", \
-						"<span class='userdanger'>You block [user]'s grab!</span>", "<span class='hear'>You hear a swoosh!</span>", COMBAT_MESSAGE_RANGE, user)
-		to_chat(user, "<span class='warning'>Your grab at [target] was blocked!</span>")
+		target.visible_message(span_warning("[target] blocks [user]'s grab!"), \
+						span_userdanger("You block [user]'s grab!"), span_hear("You hear a swoosh!"), COMBAT_MESSAGE_RANGE, user)
+		to_chat(user, span_warning("Your grab at [target] was blocked!"))
 		return FALSE
-	if(attacker_style?.grab_act(user,target))
+	if(attacker_style?.grab_act(user,target) == MARTIAL_ATTACK_SUCCESS)
 		return TRUE
 	else
 		target.grabbedby(user)
@@ -1336,35 +1383,28 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 ///This proc handles punching damage. IMPORTANT: Our owner is the TARGET and not the USER in this proc. For whatever reason...
 /datum/species/proc/harm(mob/living/carbon/human/user, mob/living/carbon/human/target, datum/martial_art/attacker_style)
 	if(HAS_TRAIT(user, TRAIT_PACIFISM))
-		to_chat(user, "<span class='warning'>You don't want to harm [target]!</span>")
+		to_chat(user, span_warning("You don't want to harm [target]!"))
 		return FALSE
 	if(target.check_block())
-		target.visible_message("<span class='warning'>[target] blocks [user]'s attack!</span>", \
-						"<span class='userdanger'>You block [user]'s attack!</span>", "<span class='hear'>You hear a swoosh!</span>", COMBAT_MESSAGE_RANGE, user)
-		to_chat(user, "<span class='warning'>Your attack at [target] was blocked!</span>")
+		target.visible_message(span_warning("[target] blocks [user]'s attack!"), \
+						span_userdanger("You block [user]'s attack!"), span_hear("You hear a swoosh!"), COMBAT_MESSAGE_RANGE, user)
+		to_chat(user, span_warning("Your attack at [target] was blocked!"))
 		return FALSE
-	if(attacker_style?.harm_act(user,target))
+	if(attacker_style?.harm_act(user,target) == MARTIAL_ATTACK_SUCCESS)
 		return TRUE
 	else
 
 		var/atk_verb = user.dna.species.attack_verb
+		var/atk_effect = user.dna.species.attack_effect
 		if(target.body_position == LYING_DOWN)
-			atk_verb = ATTACK_EFFECT_KICK
+			atk_verb = "kick"
+			atk_effect = ATTACK_EFFECT_KICK
 
-		switch(atk_verb)//this code is really stupid but some genius apparently made "claw" and "slash" two attack types but also the same one so it's needed i guess
-			if(ATTACK_EFFECT_KICK)
-				user.do_attack_animation(target, ATTACK_EFFECT_KICK)
-			if(ATTACK_EFFECT_SLASH || ATTACK_EFFECT_CLAW)//smh
-				user.do_attack_animation(target, ATTACK_EFFECT_CLAW)
-			if(ATTACK_EFFECT_SMASH)
-				user.do_attack_animation(target, ATTACK_EFFECT_SMASH)
-			if(ATTACK_EFFECT_BITE)
-				if(user.is_mouth_covered(FALSE, TRUE))
-					to_chat(user, "<span class='warning'>You can't bite with your mouth covered!</span>")
-					return FALSE
-				user.do_attack_animation(target, ATTACK_EFFECT_BITE)
-			else
-				user.do_attack_animation(target, ATTACK_EFFECT_PUNCH)
+		if(atk_effect == ATTACK_EFFECT_BITE)
+			if(user.is_mouth_covered(mask_only = TRUE))
+				to_chat(user, span_warning("You can't [atk_verb] with your mouth covered!"))
+				return FALSE
+		user.do_attack_animation(target, atk_effect)
 
 		var/damage = rand(user.dna.species.punchdamagelow, user.dna.species.punchdamagehigh)
 
@@ -1372,16 +1412,16 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 		var/miss_chance = 100//calculate the odds that a punch misses entirely. considers stamina and brute damage of the puncher. punches miss by default to prevent weird cases
 		if(user.dna.species.punchdamagelow)
-			if(atk_verb == ATTACK_EFFECT_KICK || HAS_TRAIT(user, TRAIT_PERFECT_ATTACKER)) //kicks never miss (provided your species deals more than 0 damage)
+			if(atk_effect == ATTACK_EFFECT_KICK || HAS_TRAIT(user, TRAIT_PERFECT_ATTACKER)) //kicks never miss (provided your species deals more than 0 damage)
 				miss_chance = 0
 			else
 				miss_chance = min((user.dna.species.punchdamagehigh/user.dna.species.punchdamagelow) + (user.getStaminaLoss()*0.2) + (user.getBruteLoss()*0.2), 100) //old base chance for a miss + various damage. capped at 100 to prevent weirdness in prob() //SKYRAT EDIT CHANGE: miss_chance = min((user.dna.species.punchdamagehigh/user.dna.species.punchdamagelow) + user.getStaminaLoss() + (user.getBruteLoss()*0.5), 100) //old base chance for a miss + various damage. capped at 100 to prevent weirdness in prob()
 
 		if(!damage || !affecting || prob(miss_chance))//future-proofing for species that have 0 damage/weird cases where no zone is targeted
 			playsound(target.loc, user.dna.species.miss_sound, 25, TRUE, -1)
-			target.visible_message("<span class='danger'>[user]'s [atk_verb] misses [target]!</span>", \
-							"<span class='danger'>You avoid [user]'s [atk_verb]!</span>", "<span class='hear'>You hear a swoosh!</span>", COMBAT_MESSAGE_RANGE, user)
-			to_chat(user, "<span class='warning'>Your [atk_verb] misses [target]!</span>")
+			target.visible_message(span_danger("[user]'s [atk_verb] misses [target]!"), \
+							span_danger("You avoid [user]'s [atk_verb]!"), span_hear("You hear a swoosh!"), COMBAT_MESSAGE_RANGE, user)
+			to_chat(user, span_warning("Your [atk_verb] misses [target]!"))
 			log_combat(user, target, "attempted to punch")
 			return FALSE
 
@@ -1389,9 +1429,9 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 		playsound(target.loc, user.dna.species.attack_sound, 25, TRUE, -1)
 
-		target.visible_message("<span class='danger'>[user] [atk_verb]ed [target]!</span>", \
-						"<span class='userdanger'>You're [atk_verb]ed by [user]!</span>", "<span class='hear'>You hear a sickening sound of flesh hitting flesh!</span>", COMBAT_MESSAGE_RANGE, user)
-		to_chat(user, "<span class='danger'>You [atk_verb] [target]!</span>")
+		target.visible_message(span_danger("[user] [atk_verb]ed [target]!"), \
+						span_userdanger("You're [atk_verb]ed by [user]!"), span_hear("You hear a sickening sound of flesh hitting flesh!"), COMBAT_MESSAGE_RANGE, user)
+		to_chat(user, span_danger("You [atk_verb] [target]!"))
 
 		target.lastattacker = user.real_name
 		target.lastattackerckey = user.ckey
@@ -1400,7 +1440,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 		if(user.limb_destroyer)
 			target.dismembering_strike(user, affecting.body_zone)
 
-		if(atk_verb == ATTACK_EFFECT_KICK)//kicks deal 1.5x raw damage
+		if(atk_effect == ATTACK_EFFECT_KICK)//kicks deal 1.5x raw damage
 			target.apply_damage(damage*1.5, user.dna.species.attack_type, affecting, armor_block)
 			target.apply_damage(damage*PUNCH_STAMINA_MULTIPLIER, STAMINA, affecting, armor_block) //SKYRAT EDIT ADDITION
 			log_combat(user, target, "kicked")
@@ -1423,11 +1463,11 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 /datum/species/proc/disarm(mob/living/carbon/human/user, mob/living/carbon/human/target, datum/martial_art/attacker_style)
 	if(target.check_block())
-		target.visible_message("<span class='warning'>[user]'s shove is blocked by [target]!</span>", \
-						"<span class='danger'>You block [user]'s shove!</span>", "<span class='hear'>You hear a swoosh!</span>", COMBAT_MESSAGE_RANGE, user)
-		to_chat(user, "<span class='warning'>Your shove at [target] was blocked!</span>")
+		target.visible_message(span_warning("[user]'s shove is blocked by [target]!"), \
+						span_danger("You block [user]'s shove!"), span_hear("You hear a swoosh!"), COMBAT_MESSAGE_RANGE, user)
+		to_chat(user, span_warning("Your shove at [target] was blocked!"))
 		return FALSE
-	if(attacker_style?.disarm_act(user,target))
+	if(attacker_style?.disarm_act(user,target) == MARTIAL_ATTACK_SUCCESS)
 		return TRUE
 	if(user.body_position != STANDING_UP)
 		return FALSE
@@ -1453,9 +1493,9 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 		attacker_style = M.mind.martial_art
 	if((M != H) && M.combat_mode && H.check_shields(M, 0, M.name, attack_type = UNARMED_ATTACK))
 		log_combat(M, H, "attempted to touch")
-		H.visible_message("<span class='warning'>[M] attempts to touch [H]!</span>", \
-						"<span class='danger'>[M] attempts to touch you!</span>", "<span class='hear'>You hear a swoosh!</span>", COMBAT_MESSAGE_RANGE, M)
-		to_chat(M, "<span class='warning'>You attempt to touch [H]!</span>")
+		H.visible_message(span_warning("[M] attempts to touch [H]!"), \
+						span_danger("[M] attempts to touch you!"), span_hear("You hear a swoosh!"), COMBAT_MESSAGE_RANGE, M)
+		to_chat(M, span_warning("You attempt to touch [H]!"))
 		return
 	//Check if we can do a grab maneuver, if so, attempt it - SKYRAT EDIT ADDITION
 	if(H.pulledby && H.pulledby == M && M.grab_state && try_grab_maneuver(M, H, modifiers))
@@ -1463,7 +1503,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 	SEND_SIGNAL(M, COMSIG_MOB_ATTACK_HAND, M, H, attacker_style)
 
-	if(modifiers && modifiers["right"])
+	if(LAZYACCESS(modifiers, RIGHT_CLICK))
 		disarm(M, H, attacker_style)
 		return // dont attack after
 	if(M.combat_mode)
@@ -1477,8 +1517,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 		if(H.check_shields(I, I.force, "the [I.name]", MELEE_ATTACK, I.armour_penetration))
 			return FALSE
 	if(H.check_block())
-		H.visible_message("<span class='warning'>[H] blocks [I]!</span>", \
-						"<span class='userdanger'>You block [I]!</span>")
+		H.visible_message(span_warning("[H] blocks [I]!"), \
+						span_userdanger("You block [I]!"))
 		return FALSE
 
 	var/hit_area
@@ -1488,7 +1528,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	hit_area = affecting.name
 	var/def_zone = affecting.body_zone
 
-	var/armor_block = H.run_armor_check(affecting, MELEE, "<span class='notice'>Your armor has protected your [hit_area]!</span>", "<span class='warning'>Your armor has softened a hit to your [hit_area]!</span>",I.armour_penetration)
+	var/armor_block = H.run_armor_check(affecting, MELEE, span_notice("Your armor has protected your [hit_area]!"), span_warning("Your armor has softened a hit to your [hit_area]!"),I.armour_penetration, weak_against_armour = I.weak_against_armour)
 	armor_block = min(90,armor_block) //cap damage reduction at 90%
 	var/Iwound_bonus = I.wound_bonus
 
@@ -1529,13 +1569,13 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	var/bloody = FALSE
 	if(((I.damtype == BRUTE) && I.force && prob(25 + (I.force * 2))))
 		if(affecting.status == BODYPART_ORGANIC)
-			I.add_mob_blood(H)	//Make the weapon bloody, not the person.
-			if(prob(I.force * 2))	//blood spatter!
+			I.add_mob_blood(H) //Make the weapon bloody, not the person.
+			if(prob(I.force * 2)) //blood spatter!
 				bloody = TRUE
 				var/turf/location = H.loc
 				if(istype(location))
 					H.add_splatter_floor(location)
-				if(get_dist(user, H) <= 1)	//people with TK won't get smeared with blood
+				if(get_dist(user, H) <= 1) //people with TK won't get smeared with blood
 					user.add_mob_blood(H)
 
 		switch(hit_area)
@@ -1544,8 +1584,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 					if(prob(I.force))
 						H.adjustOrganLoss(ORGAN_SLOT_BRAIN, 20)
 						if(H.stat == CONSCIOUS)
-							H.visible_message("<span class='danger'>[H] is knocked senseless!</span>", \
-											"<span class='userdanger'>You're knocked senseless!</span>")
+							H.visible_message(span_danger("[H] is knocked senseless!"), \
+											span_userdanger("You're knocked senseless!"))
 							H.set_confusion(max(H.get_confusion(), 20))
 							H.adjust_blurriness(10)
 						if(prob(10))
@@ -1558,7 +1598,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 						if(rev)
 							rev.remove_revolutionary(FALSE, user)
 
-				if(bloody)	//Apply blood
+				if(bloody) //Apply blood
 					if(H.wear_mask)
 						H.wear_mask.add_mob_blood(H)
 						H.update_inv_wear_mask()
@@ -1587,7 +1627,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 	return TRUE
 
-/datum/species/proc/apply_damage(damage, damagetype = BRUTE, def_zone = null, blocked, mob/living/carbon/human/H, forced = FALSE, spread_damage = FALSE, wound_bonus = 0, bare_wound_bonus = 0, sharpness = SHARP_NONE)
+/datum/species/proc/apply_damage(damage, damagetype = BRUTE, def_zone = null, blocked, mob/living/carbon/human/H, forced = FALSE, spread_damage = FALSE, wound_bonus = 0, bare_wound_bonus = 0, sharpness = NONE)
 	SEND_SIGNAL(H, COMSIG_MOB_APPLY_DAMGE, damage, damagetype, def_zone, wound_bonus, bare_wound_bonus, sharpness) // make sure putting wound_bonus here doesn't screw up other signals or uses for this signal
 	var/hit_percent = (100-(blocked+armor))/100
 	hit_percent = (hit_percent * (100-H.physiology.damage_resistance))/100
@@ -1647,23 +1687,15 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	// called when hit by a projectile
 	switch(P.type)
 		if(/obj/projectile/energy/floramut) // overwritten by plants/pods
-			H.show_message("<span class='notice'>The radiation beam dissipates harmlessly through your body.</span>")
+			H.show_message(span_notice("The radiation beam dissipates harmlessly through your body."))
 		if(/obj/projectile/energy/florayield)
-			H.show_message("<span class='notice'>The radiation beam dissipates harmlessly through your body.</span>")
+			H.show_message(span_notice("The radiation beam dissipates harmlessly through your body."))
 		if(/obj/projectile/energy/florarevolution)
-			H.show_message("<span class='notice'>The radiation beam dissipates harmlessly through your body.</span>")
+			H.show_message(span_notice("The radiation beam dissipates harmlessly through your body."))
 
 /datum/species/proc/bullet_act(obj/projectile/P, mob/living/carbon/human/H)
 	// called before a projectile hit
 	return 0
-
-/////////////
-//BREATHING//
-/////////////
-
-/datum/species/proc/breathe(mob/living/carbon/human/H)
-	if(HAS_TRAIT(H, TRAIT_NOBREATH))
-		return TRUE
 
 //////////////////////////
 // ENVIRONMENT HANDLERS //
@@ -1676,8 +1708,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * * environment (required) The environment gas mix
  * * humi (required)(type: /mob/living/carbon/human) The mob we will target
  */
-/datum/species/proc/handle_environment(datum/gas_mixture/environment, mob/living/carbon/human/humi)
-	handle_environment_pressure(environment, humi)
+/datum/species/proc/handle_environment(mob/living/carbon/human/humi, datum/gas_mixture/environment, delta_time, times_fired)
+	handle_environment_pressure(humi, environment, delta_time, times_fired)
 
 /**
  * Body temperature handler for species
@@ -1687,18 +1719,22 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * vars:
  * * humi (required)(type: /mob/living/carbon/human) The mob we will target
  */
-/datum/species/proc/handle_body_temperature(mob/living/carbon/human/humi)
+/datum/species/proc/handle_body_temperature(mob/living/carbon/human/humi, delta_time, times_fired)
 	//when in a cryo unit we suspend all natural body regulation
 	if(istype(humi.loc, /obj/machinery/atmospherics/components/unary/cryo_cell))
 		return
-	//when dead the air still effects your skin temp
-	if(humi.stat == DEAD || IS_IN_STASIS(humi))
-		body_temperature_skin(humi)
-	else //when alive do all the things
-		body_temperature_core(humi)
-		body_temperature_skin(humi)
-		body_temperature_alerts(humi)
-		body_temperature_damage(humi)
+
+	//Only stabilise core temp when alive and not in statis
+	if(humi.stat < DEAD && !IS_IN_STASIS(humi))
+		body_temperature_core(humi, delta_time, times_fired)
+
+	//These do run in statis
+	body_temperature_skin(humi, delta_time, times_fired)
+	body_temperature_alerts(humi, delta_time, times_fired)
+
+	//Do not cause more damage in statis
+	if(!IS_IN_STASIS(humi))
+		body_temperature_damage(humi, delta_time, times_fired)
 
 /**
  * Used to stabilize the core temperature back to normal on living mobs
@@ -1707,8 +1743,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * vars:
  * * humi (required) The mob we will stabilize
  */
-/datum/species/proc/body_temperature_core(mob/living/carbon/human/humi)
-	var/natural_change = get_temp_change_amount(humi.get_body_temp_normal() - humi.coretemperature, 0.12)
+/datum/species/proc/body_temperature_core(mob/living/carbon/human/humi, delta_time, times_fired)
+	var/natural_change = get_temp_change_amount(humi.get_body_temp_normal() - humi.coretemperature, 0.06 * delta_time)
 	humi.adjust_coretemperature(humi.metabolism_efficiency * natural_change)
 
 /**
@@ -1718,13 +1754,15 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * This happens even when dead so bodies revert to room temp over time.
  * vars:
  * * humi (required) The mob we will targeting
+ * - delta_time: The amount of time that is considered as elapsing
+ * - times_fired: The number of times SSmobs has fired
  */
-/datum/species/proc/body_temperature_skin(mob/living/carbon/human/humi)
+/datum/species/proc/body_temperature_skin(mob/living/carbon/human/humi, delta_time, times_fired)
 
 	// change the core based on the skin temp
 	var/skin_core_diff = humi.bodytemperature - humi.coretemperature
-	// change rate of 0.08 to be slightly below area to skin change rate and still have a solid curve
-	var/skin_core_change = get_temp_change_amount(skin_core_diff, 0.08)
+	// change rate of 0.04 per second to be slightly below area to skin change rate and still have a solid curve
+	var/skin_core_change = get_temp_change_amount(skin_core_diff, 0.04 * delta_time)
 
 	humi.adjust_coretemperature(skin_core_change)
 
@@ -1736,14 +1774,22 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	// Get the temperature of the environment for area
 	var/area_temp = humi.get_temperature(environment)
 
+	//SKYRAT EDIT ADDITION
+	//Special handling for getting liquids temperature
+	if(isturf(humi.loc))
+		var/turf/T = humi.loc
+		if(T.liquids && T.liquids.liquid_state > LIQUID_STATE_PUDDLE)
+			var/submergment_percent = SUBMERGEMENT_PERCENT(humi, T.liquids)
+			area_temp = (area_temp*(1-submergment_percent)) + (T.liquids.temp * submergment_percent)
+	//SKYRAT EDIT END
 	// Get the insulation value based on the area's temp
 	var/thermal_protection = humi.get_insulation_protection(area_temp)
 
 	// Changes to the skin temperature based on the area
 	var/area_skin_diff = area_temp - humi.bodytemperature
 	if(!humi.on_fire || area_skin_diff > 0)
-		// change rate of 0.1 as area temp has large impact on the surface
-		var/area_skin_change = get_temp_change_amount(area_skin_diff, 0.1)
+		// change rate of 0.05 as area temp has large impact on the surface
+		var/area_skin_change = get_temp_change_amount(area_skin_diff, 0.05 * delta_time)
 
 		// We need to apply the thermal protection of the clothing when applying area to surface change
 		// If the core bodytemp goes over the normal body temp you are overheating and becom sweaty
@@ -1761,8 +1807,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	if(!humi.on_fire)
 		// Get the changes to the skin from the core temp
 		var/core_skin_diff = humi.coretemperature - humi.bodytemperature
-		// change rate of 0.09 to reflect temp back to the skin at the slight higher rate then core to skin
-		var/core_skin_change = (1 + thermal_protection) * get_temp_change_amount(core_skin_diff, 0.09)
+		// change rate of 0.045 to reflect temp back to the skin at the slight higher rate then core to skin
+		var/core_skin_change = (1 + thermal_protection) * get_temp_change_amount(core_skin_diff, 0.045 * delta_time)
 
 		// We do not want to over shoot after using protection
 		if(core_skin_diff > 0)
@@ -1824,17 +1870,17 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * vars:
  * * humi (required) The mob we will targeting
  */
-/datum/species/proc/body_temperature_damage(mob/living/carbon/human/humi)
+/datum/species/proc/body_temperature_damage(mob/living/carbon/human/humi, delta_time, times_fired)
 
 	//If the body temp is above the wound limit start adding exposure stacks
 	if(humi.bodytemperature > BODYTEMP_HEAT_WOUND_LIMIT)
-		humi.heat_exposure_stacks = min(humi.heat_exposure_stacks + 1, 40)
+		humi.heat_exposure_stacks = min(humi.heat_exposure_stacks + (0.5 * delta_time), 40)
 	else //When below the wound limit, reduce the exposure stacks fast.
-		humi.heat_exposure_stacks = max(humi.heat_exposure_stacks - 4, 0)
+		humi.heat_exposure_stacks = max(humi.heat_exposure_stacks - (2 * delta_time), 0)
 
 	//when exposure stacks are greater then 10 + rand20 try to apply wounds and reset stacks
 	if(humi.heat_exposure_stacks > (10 + rand(0, 20)))
-		apply_burn_wounds(humi)
+		apply_burn_wounds(humi, delta_time, times_fired)
 		humi.heat_exposure_stacks = 0
 
 	// Body temperature is too hot, and we do not have resist traits
@@ -1845,10 +1891,10 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			firemodifier = min(firemodifier, 0)
 
 		// this can go below 5 at log 2.5
-		var/burn_damage = max(log(2 - firemodifier, (humi.coretemperature - humi.get_body_temp_normal(apply_change=FALSE))) - 5,0)
+		var/burn_damage = max(log(2 - firemodifier, (humi.coretemperature - humi.get_body_temp_normal(apply_change=FALSE))) - 5, 0)
 
 		// Apply species and physiology modifiers to heat damage
-		burn_damage = burn_damage * heatmod * humi.physiology.heat_mod
+		burn_damage = burn_damage * heatmod * humi.physiology.heat_mod * 0.5 * delta_time
 
 		// 40% for level 3 damage on humans to scream in pain
 		if (humi.stat < UNCONSCIOUS && (prob(burn_damage) * 10) / 4)
@@ -1863,15 +1909,15 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	var/cold_damage_limit = bodytemp_cold_damage_limit + (is_hulk ? BODYTEMP_HULK_COLD_DAMAGE_LIMIT_MODIFIER : 0)
 
 	if(humi.coretemperature < cold_damage_limit && !HAS_TRAIT(humi, TRAIT_RESISTCOLD))
-		var/damage_type = is_hulk ? BRUTE : BURN
+		var/damage_type = is_hulk ? BRUTE : BURN // Why?
 		var/damage_mod = coldmod * humi.physiology.cold_mod * (is_hulk ? HULK_COLD_DAMAGE_MOD : 1)
 		switch(humi.coretemperature)
 			if(201 to cold_damage_limit)
-				humi.apply_damage(COLD_DAMAGE_LEVEL_1 * damage_mod, damage_type)
+				humi.apply_damage(COLD_DAMAGE_LEVEL_1 * damage_mod * delta_time, damage_type)
 			if(120 to 200)
-				humi.apply_damage(COLD_DAMAGE_LEVEL_2 * damage_mod, damage_type)
+				humi.apply_damage(COLD_DAMAGE_LEVEL_2 * damage_mod * delta_time, damage_type)
 			else
-				humi.apply_damage(COLD_DAMAGE_LEVEL_3 * damage_mod, damage_type)
+				humi.apply_damage(COLD_DAMAGE_LEVEL_3 * damage_mod * delta_time, damage_type)
 
 /**
  * Used to apply burn wounds on random limbs
@@ -1881,7 +1927,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
  * vars:
  * * humi (required) The mob we will targeting
  */
-/datum/species/proc/apply_burn_wounds(mob/living/carbon/human/humi)
+/datum/species/proc/apply_burn_wounds(mob/living/carbon/human/humi, delta_time, times_fired)
 	// If we are resistant to heat exit
 	if(HAS_TRAIT(humi, TRAIT_RESISTHEAT))
 		return
@@ -1913,21 +1959,19 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	if(humi.bodytemperature > BODYTEMP_HEAT_WOUND_LIMIT + 2800)
 		burn_damage = HEAT_DAMAGE_LEVEL_3
 
-	humi.apply_damage(burn_damage, BURN, bodypart)
+	humi.apply_damage(burn_damage * delta_time, BURN, bodypart)
 
 /// Handle the air pressure of the environment
-/datum/species/proc/handle_environment_pressure(datum/gas_mixture/environment, mob/living/carbon/human/H)
+/datum/species/proc/handle_environment_pressure(mob/living/carbon/human/H, datum/gas_mixture/environment, delta_time, times_fired)
 	var/pressure = environment.return_pressure()
 	var/adjusted_pressure = H.calculate_affecting_pressure(pressure)
 
 	// Set alerts and apply damage based on the amount of pressure
 	switch(adjusted_pressure)
-
 		// Very high pressure, show an alert and take damage
 		if(HAZARD_HIGH_PRESSURE to INFINITY)
 			if(!HAS_TRAIT(H, TRAIT_RESISTHIGHPRESSURE))
-				H.adjustBruteLoss(min(((adjusted_pressure / HAZARD_HIGH_PRESSURE) -1 ) * \
-					PRESSURE_DAMAGE_COEFFICIENT, MAX_HIGH_PRESSURE_DAMAGE) * H.physiology.pressure_mod)
+				H.adjustBruteLoss(min(((adjusted_pressure / HAZARD_HIGH_PRESSURE) - 1) * PRESSURE_DAMAGE_COEFFICIENT, MAX_HIGH_PRESSURE_DAMAGE) * H.physiology.pressure_mod * delta_time)
 				H.throw_alert("pressure", /atom/movable/screen/alert/highpressure, 2)
 			else
 				H.clear_alert("pressure")
@@ -1954,7 +1998,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 			if(HAS_TRAIT(H, TRAIT_RESISTLOWPRESSURE))
 				H.clear_alert("pressure")
 			else
-				H.adjustBruteLoss(LOW_PRESSURE_DAMAGE * H.physiology.pressure_mod)
+				H.adjustBruteLoss(LOW_PRESSURE_DAMAGE * H.physiology.pressure_mod * delta_time)
 				H.throw_alert("pressure", /atom/movable/screen/alert/lowpressure, 2)
 
 
@@ -1962,7 +2006,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 // FIRE //
 //////////
 
-/datum/species/proc/handle_fire(mob/living/carbon/human/H, no_protection = FALSE)
+/datum/species/proc/handle_fire(mob/living/carbon/human/H, delta_time, times_fired, no_protection = FALSE)
 	if(!CanIgniteMob(H))
 		return TRUE
 	if(H.on_fire)
@@ -2019,9 +2063,9 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 		if(thermal_protection >= FIRE_IMMUNITY_MAX_TEMP_PROTECT && !no_protection)
 			return
 		if(thermal_protection >= FIRE_SUIT_MAX_TEMP_PROTECT && !no_protection)
-			H.adjust_bodytemperature(11)
+			H.adjust_bodytemperature(5.5 * delta_time)
 		else
-			H.adjust_bodytemperature(BODYTEMP_HEATING_MAX + (H.fire_stacks * 12))
+			H.adjust_bodytemperature((BODYTEMP_HEATING_MAX + (H.fire_stacks * 12)) * 0.5 * delta_time)
 			SEND_SIGNAL(H, COMSIG_ADD_MOOD_EVENT, "on_fire", /datum/mood_event/on_fire)
 
 /datum/species/proc/CanIgniteMob(mob/living/carbon/human/H)
@@ -2061,6 +2105,85 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 //Tail Wagging//
 ////////////////
 
+
+/*
+ * This proc is called when a mob loses their tail.
+ *
+ * tail_owner - the owner of the tail (who holds our species datum)
+ * lost_tail - the tail that was removed
+ * on_species_init - whether or not this was called when the species was initialized, or if it was called due to an ingame means (like surgery)
+ */
+/datum/species/proc/on_tail_lost(mob/living/carbon/human/tail_owner, obj/item/organ/tail/lost_tail, on_species_init = FALSE)
+	SEND_SIGNAL(tail_owner, COMSIG_CLEAR_MOOD_EVENT, "right_tail_regained")
+	SEND_SIGNAL(tail_owner, COMSIG_CLEAR_MOOD_EVENT, "wrong_tail_regained")
+	stop_wagging_tail(tail_owner)
+
+	// If it's initializing the species, don't add moodlets
+	if(on_species_init)
+		return
+	// If we don't have a set tail, don't bother adding moodlets
+	//SKYRAT EDIT CHANGE BEGIN
+	/*
+	if(!mutant_organs.len)
+		return
+	*/
+	if(!tail_owner.dna.mutant_bodyparts["tail"])
+		return
+	//SKYRAT EDIT CHANGE END
+
+	SEND_SIGNAL(tail_owner, COMSIG_ADD_MOOD_EVENT, "tail_lost", /datum/mood_event/tail_lost)
+	SEND_SIGNAL(tail_owner, COMSIG_ADD_MOOD_EVENT, "tail_balance_lost", /datum/mood_event/tail_balance_lost)
+
+/*
+ * This proc is called when a mob gains a tail.
+ *
+ * tail_owner - the owner of the tail (who holds our species datum)
+ * lost_tail - the tail that was added
+ * on_species_init - whether or not this was called when the species was initialized, or if it was called due to an ingame means (like surgery)
+ */
+/datum/species/proc/on_tail_regain(mob/living/carbon/human/tail_owner, obj/item/organ/tail/found_tail, on_species_init = FALSE)
+	SEND_SIGNAL(tail_owner, COMSIG_CLEAR_MOOD_EVENT, "tail_lost")
+	SEND_SIGNAL(tail_owner, COMSIG_CLEAR_MOOD_EVENT, "tail_balance_lost")
+
+	// If it's initializing the species, don't add moodlets
+	if(on_species_init)
+		return
+	// If we don't have a set tail, don't add moodlets
+	//SKYRAT EDIT CHANGE BEGIN
+	/*
+	if(!mutant_organs.len)
+		return
+	*/
+	if(!tail_owner.dna.mutant_bodyparts["tail"])
+		return
+	//SKYRAT EDIT CHANGE END
+
+	//SKYRAT EDIT CHANGE BEGIN
+	/*
+	if(found_tail.type in mutant_organs)
+		SEND_SIGNAL(tail_owner, COMSIG_ADD_MOOD_EVENT, "right_tail_regained", /datum/mood_event/tail_regained_right)
+	else
+		SEND_SIGNAL(tail_owner, COMSIG_ADD_MOOD_EVENT, "wrong_tail_regained", /datum/mood_event/tail_regained_wrong)
+	*/
+	if(tail_owner.dna.mutant_bodyparts["tail"][MUTANT_INDEX_NAME] == mutant_bodyparts["tail"][MUTANT_INDEX_NAME]) //mutant_bodyparts["tail"] should exist here
+		SEND_SIGNAL(tail_owner, COMSIG_ADD_MOOD_EVENT, "right_tail_regained", /datum/mood_event/tail_regained_right)
+	else
+		SEND_SIGNAL(tail_owner, COMSIG_ADD_MOOD_EVENT, "wrong_tail_regained", /datum/mood_event/tail_regained_wrong)
+	//SKYRAT EDIT CHANGE END
+
+/*
+ * Clears all tail related moodlets when they lose their species.
+ *
+ * former_tail_owner - the mob that was once a species with a tail and now is a different species
+ */
+/datum/species/proc/clear_tail_moodlets(mob/living/carbon/human/former_tail_owner)
+	SEND_SIGNAL(former_tail_owner, COMSIG_CLEAR_MOOD_EVENT, "tail_lost")
+	SEND_SIGNAL(former_tail_owner, COMSIG_CLEAR_MOOD_EVENT, "tail_balance_lost")
+	SEND_SIGNAL(former_tail_owner, COMSIG_CLEAR_MOOD_EVENT, "right_tail_regained")
+	SEND_SIGNAL(former_tail_owner, COMSIG_CLEAR_MOOD_EVENT, "wrong_tail_regained")
+	stop_wagging_tail(former_tail_owner)
+
+
 //SKYRAT EDIT REMOVAL BEGIN - CUSTOMIZATION (moved to modular)
 /*
 /datum/species/proc/can_wag_tail(mob/living/carbon/human/H)
@@ -2068,7 +2191,6 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 /datum/species/proc/is_wagging_tail(mob/living/carbon/human/H)
 	return FALSE
-
 /datum/species/proc/start_wagging_tail(mob/living/carbon/human/H)
 
 /datum/species/proc/stop_wagging_tail(mob/living/carbon/human/H)
@@ -2083,6 +2205,26 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	if(flying_species) //species that already have flying traits should not work with this proc
 		return
 	flying_species = TRUE
+	if(wings_icons.len > 1)
+		if(!H.client)
+			wings_icon = pick(wings_icons)
+		else
+			var/list/wings = list()
+			for(var/W in wings_icons)
+				//var/datum/sprite_accessory/S = GLOB.wings_list[W]	//Gets the datum for every wing this species has, then prompts user with a radial menu //ORIGINAL
+				var/datum/sprite_accessory/S = GLOB.sprite_accessories["wings"][W] //SKYRAT EDIT CHANGE
+				var/image/img = image(icon = 'icons/mob/clothing/wings.dmi', icon_state = "m_wingsopen_[S.icon_state]_BEHIND")	//Process the HUD elements
+				img.transform *= 0.5
+				img.pixel_x = -32
+				if(wings[S.name])
+					stack_trace("Different wing types with repeated names. Please fix as this may cause issues.")
+				else
+					wings[S.name] = img
+			wings_icon = show_radial_menu(H, H, wings, tooltips = TRUE)
+			if(!wings_icon)
+				wings_icon = pick(wings_icons)
+	else
+		wings_icon = wings_icons[1]
 	if(isnull(fly))
 		fly = new
 		fly.Grant(H)
@@ -2103,8 +2245,8 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 /datum/species/proc/CanFly(mob/living/carbon/human/H)
 	if(H.stat || H.body_position == LYING_DOWN)
 		return FALSE
-	if(H.wear_suit && ((H.wear_suit.flags_inv & HIDEJUMPSUIT) && (!H.wear_suit.species_exception || !is_type_in_list(src, H.wear_suit.species_exception))))	//Jumpsuits have tail holes, so it makes sense they have wing holes too
-		to_chat(H, "<span class='warning'>Your suit blocks your wings from extending!</span>")
+	if(H.wear_suit && ((H.wear_suit.flags_inv & HIDEJUMPSUIT) && (!H.wear_suit.species_exception || !is_type_in_list(src, H.wear_suit.species_exception)))) //Jumpsuits have tail holes, so it makes sense they have wing holes too
+		to_chat(H, span_warning("Your suit blocks your wings from extending!"))
 		return FALSE
 	var/turf/T = get_turf(H)
 	if(!T)
@@ -2112,7 +2254,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 
 	var/datum/gas_mixture/environment = T.return_air()
 	if(environment && !(environment.return_pressure() > 30))
-		to_chat(H, "<span class='warning'>The atmosphere is too thin for you to fly!</span>")
+		to_chat(H, span_warning("The atmosphere is too thin for you to fly!"))
 		return FALSE
 	else
 		return TRUE
@@ -2122,7 +2264,7 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	if(H.buckled)
 		buckled_obj = H.buckled
 
-	to_chat(H, "<span class='notice'>Your wings spazz out and launch you!</span>")
+	to_chat(H, span_notice("Your wings spazz out and launch you!"))
 
 	playsound(H.loc, 'sound/misc/slip.ogg', 50, TRUE, -3)
 
@@ -2168,9 +2310,9 @@ GLOBAL_LIST_EMPTY(roundstart_races)
 	if(S.CanFly(H))
 		S.ToggleFlight(H)
 		if(!(H.movement_type & FLYING))
-			to_chat(H, "<span class='notice'>You settle gently back onto the ground...</span>")
+			to_chat(H, span_notice("You settle gently back onto the ground..."))
 		else
-			to_chat(H, "<span class='notice'>You beat your wings and begin to hover gently above the ground...</span>")
+			to_chat(H, span_notice("You beat your wings and begin to hover gently above the ground..."))
 			H.set_resting(FALSE, TRUE)
 
 /**

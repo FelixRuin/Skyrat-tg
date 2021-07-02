@@ -6,8 +6,11 @@
 	food_reagents = list(/datum/reagent/consumable/nutriment = 28, /datum/reagent/consumable/nutriment/protein = 3, /datum/reagent/consumable/tomatojuice = 6, /datum/reagent/consumable/nutriment/vitamin = 5)
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1)
 	foodtypes = GRAIN | DAIRY | VEGETABLES
+	venue_value = FOOD_PRICE_CHEAP
 	/// type is spawned 6 at a time and replaces this pizza when processed by cutting tool
 	var/obj/item/food/pizzaslice/slice_type
+	///What label pizza boxes use if this pizza spawns in them.
+	var/boxtag = ""
 
 /obj/item/food/pizza/MakeProcessable()
 	if (slice_type)
@@ -35,12 +38,12 @@
 	icon_state = "pizzamargherita"
 	food_reagents = list(/datum/reagent/consumable/nutriment = 25, /datum/reagent/consumable/nutriment/protein = 8, /datum/reagent/consumable/tomatojuice = 6, /datum/reagent/consumable/nutriment/vitamin = 5)
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1)
-	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1)
 	foodtypes = GRAIN | VEGETABLES | DAIRY
 	slice_type = /obj/item/food/pizzaslice/margherita
+	boxtag = "Margherita Deluxe"
 
 /obj/item/food/pizza/margherita/robo
-	food_reagents = list(/datum/reagent/nanomachines = 70, /datum/reagent/consumable/nutriment = 25, /datum/reagent/consumable/nutriment/protein = 8, /datum/reagent/consumable/tomatojuice = 6, /datum/reagent/consumable/nutriment/vitamin = 5)
+	food_reagents = list(/datum/reagent/cyborg_mutation_nanomachines = 70, /datum/reagent/consumable/nutriment = 25, /datum/reagent/consumable/nutriment/protein = 8, /datum/reagent/consumable/tomatojuice = 6, /datum/reagent/consumable/nutriment/vitamin = 5)
 
 /obj/item/food/pizzaslice/margherita
 	name = "margherita slice"
@@ -60,6 +63,7 @@
 	food_reagents = list(/datum/reagent/consumable/nutriment = 25, /datum/reagent/consumable/nutriment/protein = 8, /datum/reagent/consumable/tomatojuice = 6, /datum/reagent/consumable/nutriment/vitamin = 8)
 	foodtypes = GRAIN | VEGETABLES| DAIRY | MEAT
 	slice_type = /obj/item/food/pizzaslice/meat
+	boxtag = "Meatlovers' Supreme"
 
 /obj/item/food/pizzaslice/meat
 	name = "meatpizza slice"
@@ -77,6 +81,7 @@
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "mushroom" = 1)
 	foodtypes = GRAIN | VEGETABLES | DAIRY
 	slice_type = /obj/item/food/pizzaslice/mushroom
+	boxtag = "Mushroom Special"
 
 /obj/item/food/pizzaslice/mushroom
 	name = "mushroom pizza slice"
@@ -94,6 +99,8 @@
 	tastes = list("crust" = 1, "tomato" = 2, "cheese" = 1, "carrot" = 1)
 	foodtypes = GRAIN | VEGETABLES | DAIRY
 	slice_type = /obj/item/food/pizzaslice/vegetable
+	boxtag = "Gourmet Vegetable"
+	venue_value = FOOD_PRICE_NORMAL
 
 /obj/item/food/pizzaslice/vegetable
 	name = "vegetable pizza slice"
@@ -111,6 +118,7 @@
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "meat" = 1, "laziness" = 1)
 	foodtypes = GRAIN | VEGETABLES | DAIRY | MEAT | JUNKFOOD
 	slice_type = /obj/item/food/pizzaslice/donkpocket
+	boxtag = "Bangin' Donk"
 
 /obj/item/food/pizzaslice/donkpocket
 	name = "donkpocket pizza slice"
@@ -128,6 +136,7 @@
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "meat" = 1)
 	foodtypes = GRAIN | VEGETABLES | DAIRY
 	slice_type = /obj/item/food/pizzaslice/dank
+	boxtag = "Fresh Herb"
 
 /obj/item/food/pizzaslice/dank
 	name = "dank pizza slice"
@@ -139,19 +148,20 @@
 
 /obj/item/food/pizza/sassysage
 	name = "sassysage pizza"
-	desc = "You can really smell the sassiness."
+	desc = "You can almost taste the sassiness."
 	icon_state = "sassysagepizza"
 	food_reagents = list(/datum/reagent/consumable/nutriment = 20, /datum/reagent/consumable/nutriment/protein = 15, /datum/reagent/consumable/tomatojuice = 6, /datum/reagent/consumable/nutriment/vitamin = 6)
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "meat" = 1)
-	foodtypes = GRAIN | VEGETABLES | DAIRY
+	foodtypes = GRAIN | VEGETABLES | DAIRY | MEAT
 	slice_type = /obj/item/food/pizzaslice/sassysage
+	boxtag = "Sausage Lovers"
 
 /obj/item/food/pizzaslice/sassysage
 	name = "sassysage pizza slice"
 	desc = "Deliciously sassy."
 	icon_state = "sassysagepizzaslice"
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "meat" = 1)
-	foodtypes = GRAIN | VEGETABLES | DAIRY
+	foodtypes = GRAIN | VEGETABLES | DAIRY | MEAT
 
 
 /obj/item/food/pizza/pineapple
@@ -162,6 +172,7 @@
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "pineapple" = 2, "ham" = 2)
 	foodtypes = GRAIN | VEGETABLES | DAIRY | MEAT | FRUIT | PINEAPPLE
 	slice_type = /obj/item/food/pizzaslice/pineapple
+	boxtag = "Honolulu Chew"
 
 /obj/item/food/pizzaslice/pineapple
 	name = "\improper Hawaiian pizza slice"
@@ -195,6 +206,7 @@
 	food_reagents = list(/datum/reagent/consumable/nutriment = 25, /datum/reagent/consumable/nutriment/protein = 9, /datum/reagent/consumable/nutriment/vitamin = 6, /datum/reagent/iron = 10, /datum/reagent/medicine/omnizine = 30)
 	tastes = list("crust" = 1, "tomato" = 1, "cheese" = 1, "pepperoni" = 2, "9 millimeter bullets" = 2)
 	slice_type = /obj/item/food/pizzaslice/arnold
+	boxtag = "9mm Pepperoni"
 
 //fuck it, i will leave this at the food level for now.
 /obj/item/food/proc/try_break_off(mob/living/M, mob/living/user) //maybe i give you a pizza maybe i break off your arm
@@ -205,8 +217,8 @@
 	var/did_the_thing = (l_arm?.dismember() || r_arm?.dismember()) //not all limbs can be removed, so important to check that we did. the. thing.
 	if(!did_the_thing)
 		return
-	to_chat(user, "<span class='userdanger'>Maybe I'll give you a pizza, maybe I'll break off your arm.</span>") //makes the reference more obvious
-	user.visible_message("<span class='warning'>\The [src] breaks off [user]'s arm!</span>", "<span class='warning'>\The [src] breaks off your arm!</span>")
+	to_chat(user, span_userdanger("Maybe I'll give you a pizza, maybe I'll break off your arm.")) //makes the reference more obvious
+	user.visible_message(span_warning("\The [src] breaks off [user]'s arm!"), span_warning("\The [src] breaks off your arm!"))
 	playsound(user, "desecration", 50, TRUE, -1)
 
 /obj/item/food/proc/i_kill_you(obj/item/I, mob/living/user)
@@ -214,7 +226,7 @@
 		to_chat(user, "<font color='red' size='7'>If you want something crazy like pineapple, I'll kill you.</font>") //this is in bigger text because it's hard to spam something that gibs you, and so that you're perfectly aware of the reason why you died
 		user.gib() //if you want something crazy like pineapple, i'll kill you
 	else if(istype(I, /obj/item/food/grown/mushroom) && iscarbon(user))
-		to_chat(user, "<span class='userdanger'>So, if you want mushroom, shut up.</span>") //not as large as the pineapple text, because you could in theory spam it
+		to_chat(user, span_userdanger("So, if you want mushroom, shut up.")) //not as large as the pineapple text, because you could in theory spam it
 		var/mob/living/carbon/shutup = user
 		shutup.gain_trauma(/datum/brain_trauma/severe/mute)
 

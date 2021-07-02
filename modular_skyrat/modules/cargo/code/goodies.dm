@@ -50,6 +50,19 @@
 //////////////////////////// Weapons or Ammo /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
+/datum/supply_pack/goody/makarov
+	name = "Makarov Self Defense Pistol"
+	desc = "A small, slow firing and low capacity pistol, but hey, it's better then a crowbar, right? (Does not include a weapons permit.)"
+	cost = PAYCHECK_MEDIUM * 28
+	contraband = TRUE
+	contains = list(/obj/item/storage/box/gunset/makarov)
+
+/datum/supply_pack/goody/gunmaint
+	name = "Gun Maintenance Kits"
+	desc = "Keep your pa's rifle in best condition, with two sets of cleaning supplies. Or your standard issue pistol if you're an itchy trigger, we're not here to judge."
+	cost = PAYCHECK_MEDIUM * 3
+	contains = list(/obj/item/gun_maintenance_supplies,
+					/obj/item/gun_maintenance_supplies)
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Carpet Packs ////////////////////////////////////

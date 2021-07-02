@@ -1,8 +1,8 @@
 /* Backpacks
  * Contains:
- *		Backpack
- *		Backpack Types
- *		Satchel Types
+ * Backpack
+ * Backpack Types
+ * Satchel Types
  */
 
 /*
@@ -17,7 +17,7 @@
 	lefthand_file = 'icons/mob/inhands/equipment/backpack_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/equipment/backpack_righthand.dmi'
 	w_class = WEIGHT_CLASS_BULKY
-	slot_flags = ITEM_SLOT_BACK	//ERROOOOO
+	slot_flags = ITEM_SLOT_BACK //ERROOOOO
 	resistance_flags = NONE
 	max_integrity = 300
 
@@ -67,7 +67,7 @@
 	STR.max_combined_w_class = 35
 
 /obj/item/storage/backpack/holding/suicide_act(mob/living/user)
-	user.visible_message("<span class='suicide'>[user] is jumping into [src]! It looks like [user.p_theyre()] trying to commit suicide.</span>")
+	user.visible_message(span_suicide("[user] is jumping into [src]! It looks like [user.p_theyre()] trying to commit suicide."))
 	user.dropItemToGround(src, TRUE)
 	user.Stun(100, ignore_canstun = TRUE)
 	sleep(20)
@@ -92,7 +92,7 @@
 	STR.max_combined_w_class = 60
 
 /obj/item/storage/backpack/santabag/suicide_act(mob/user)
-	user.visible_message("<span class='suicide'>[user] places [src] over [user.p_their()] head and pulls it tight! It looks like [user.p_they()] [user.p_are()]n't in the Christmas spirit...</span>")
+	user.visible_message(span_suicide("[user] places [src] over [user.p_their()] head and pulls it tight! It looks like [user.p_they()] [user.p_are()]n't in the Christmas spirit..."))
 	return (OXYLOSS)
 
 /obj/item/storage/backpack/santabag/proc/regenerate_presents()
@@ -331,7 +331,7 @@
 
 	qdel(C)
 	*/
-	var/contraband_list = list(/obj/item/storage/bag/ammo=4, /obj/item/storage/belt/utility/syndicate=1, /obj/item/storage/toolbox/syndicate=7, /obj/item/card/id/syndicate=6, /obj/item/storage/secure/briefcase/syndie=3, /obj/item/stack/telecrystal=2, /obj/item/storage/belt/military=12, /obj/item/storage/pill_bottle/aranesp=11, /obj/item/storage/pill_bottle/happy=12, /obj/item/storage/pill_bottle/stimulant=9, /obj/item/storage/pill_bottle/lsd=10, /obj/item/storage/fancy/cigarettes/cigpack_syndicate=8, /obj/item/storage/fancy/cigarettes/cigpack_shadyjims=10, /obj/item/reagent_containers/food/drinks/bottle/absinthe=12, /obj/item/storage/box/fireworks/dangerous=11, /obj/item/food/grown/cannabis/white=9, /obj/item/food/grown/cannabis=13, /obj/item/food/grown/cannabis/rainbow=8, /obj/item/food/grown/mushroom/libertycap=11, /obj/item/clothing/mask/gas/syndicate=10, /obj/item/vending_refill/donksoft=13, /obj/item/ammo_box/foambox/riot=11, /obj/item/soap/syndie=7)
+	var/contraband_list = list(/obj/item/storage/bag/ammo=4, /obj/item/storage/belt/utility/syndicate=1, /obj/item/storage/toolbox/syndicate=7, /obj/item/card/id/advanced/chameleon=6, /obj/item/storage/secure/briefcase/syndie=3, /obj/item/stack/telecrystal=2, /obj/item/storage/belt/military=12, /obj/item/storage/pill_bottle/aranesp=11, /obj/item/storage/pill_bottle/happy=12, /obj/item/storage/pill_bottle/stimulant=9, /obj/item/storage/pill_bottle/lsd=10, /obj/item/storage/fancy/cigarettes/cigpack_syndicate=8, /obj/item/storage/fancy/cigarettes/cigpack_shadyjims=10, /obj/item/reagent_containers/food/drinks/bottle/absinthe=12, /obj/item/storage/box/fireworks/dangerous=11, /obj/item/food/grown/cannabis/white=9, /obj/item/food/grown/cannabis=13, /obj/item/food/grown/cannabis/rainbow=8, /obj/item/food/grown/mushroom/libertycap=11, /obj/item/clothing/mask/gas/syndicate=10, /obj/item/vending_refill/donksoft=13, /obj/item/ammo_box/foambox/riot=11, /obj/item/soap/syndie=7)
 	for(var/i in 1 to 3)
 		var/contraband_type = pickweight(contraband_list)
 		contraband_list -= contraband_type
@@ -340,7 +340,7 @@
 	//SKYRAT EDIT CHANGE END
 
 /obj/item/storage/backpack/satchel/flat/with_tools/PopulateContents()
-	new /obj/item/stack/tile/iron(src)
+	new /obj/item/stack/tile/iron/base(src)
 	new /obj/item/crowbar(src)
 
 //	..() SKYRAT EDIT REMOVAL
@@ -372,64 +372,10 @@
 	///counts time passed since it ate food
 	var/hunger = 0
 
-/obj/item/storage/backpack/duffelbag/cursed/examine(mob/user)
+/obj/item/storage/backpack/duffelbag/cursed/Initialize()
 	. = ..()
-
-	if(hunger > 25)
-		. += "<span class='danger'>The bag is growling for food...</span>"
-
-/obj/item/storage/backpack/duffelbag/cursed/equipped(mob/living/carbon/human/user, slot)
-	. = ..()
-	START_PROCESSING(SSobj,src)
-	ADD_TRAIT(src, TRAIT_NODROP, CURSED_ITEM_TRAIT)
-	ADD_TRAIT(user, TRAIT_CLUMSY, CURSED_ITEM_TRAIT)
-	ADD_TRAIT(user, TRAIT_PACIFISM, CURSED_ITEM_TRAIT)
-	ADD_TRAIT(user, TRAIT_DUFFEL_CURSED, CURSED_ITEM_TRAIT)
-
-/obj/item/storage/backpack/duffelbag/cursed/dropped(mob/living/carbon/human/user)
-	REMOVE_TRAIT(user, TRAIT_DUFFEL_CURSED, CURSED_ITEM_TRAIT)
-	REMOVE_TRAIT(user, TRAIT_CLUMSY, CURSED_ITEM_TRAIT)
-	REMOVE_TRAIT(user, TRAIT_PACIFISM, CURSED_ITEM_TRAIT)
-	STOP_PROCESSING(SSobj,src)
-
-	var/turf/T = get_turf(user)
-	playsound(T, 'sound/effects/splat.ogg', 50, TRUE)
-	new /obj/effect/decal/cleanable/vomit(T)
-
-	. = ..()
-
-/obj/item/storage/backpack/duffelbag/cursed/process()
-	///don't process if it's somehow on the floor
-	if(!iscarbon(src.loc))
-		return
-	var/mob/living/carbon/user = src.loc
-	///check hp
-	if(obj_integrity == 0)
-		user.dropItemToGround(src, TRUE)
-	hunger++
-	///check hunger
-	if((hunger > 50) && prob(20))
-		for(var/obj/item/I in contents)
-			if(IS_EDIBLE(I))
-				var/obj/item/food/F = I
-				F.forceMove(user.loc)
-				playsound(src, 'sound/items/eatfood.ogg', 20, TRUE)
-				///poisoned food damages it
-				if(istype(F, /obj/item/food/badrecipe))
-					to_chat(user, "<span class='warning'>The [name] grumbles!</span>")
-					obj_integrity -= 50
-				else
-					to_chat(user, "<span class='notice'>The [name] eats your [F]!</span>")
-				qdel(F)
-				hunger = 0
-				return
-		///no food found: it bites you and loses some hp
-		var/affecting = user.get_bodypart(BODY_ZONE_CHEST)
-		user.apply_damage(60, BRUTE, affecting)
-		hunger = initial(hunger)
-		playsound(src, 'sound/items/eatfood.ogg', 20, TRUE)
-		to_chat(user, "<span class='warning'>The [name] eats your back!</span>")
-		obj_integrity -= 25
+	var/add_dropdel = TRUE //clarified boolean
+	AddComponent(/datum/component/curse_of_hunger, add_dropdel)
 
 /obj/item/storage/backpack/duffelbag/captain
 	name = "captain's duffel bag"
@@ -494,6 +440,7 @@
 	new /obj/item/cautery(src)
 	new /obj/item/bonesetter(src)
 	new /obj/item/surgical_drapes(src)
+	new /obj/item/clothing/suit/toggle/labcoat/hospitalgown(src)	//SKYRAT EDIT ADDITION
 	new /obj/item/clothing/mask/surgical(src)
 	new /obj/item/razor(src)
 	new /obj/item/blood_filter(src)
@@ -517,6 +464,7 @@
 	new /obj/item/surgicaldrill(src)
 	new /obj/item/cautery(src)
 	new /obj/item/surgical_drapes(src)
+	new /obj/item/clothing/suit/toggle/labcoat/hospitalgown(src)	//SKYRAT EDIT ADDITION
 	new /obj/item/clothing/mask/surgical(src)
 	new /obj/item/blood_filter(src)
 
@@ -557,12 +505,14 @@
 	resistance_flags = FIRE_PROOF
 
 /obj/item/storage/backpack/duffelbag/syndie
-	name = "suspicious looking duffel bag"
+	name = "tactical duffel bag" //SKYRAT EDIT, was "suspicious-looking duffel bag". It's just a black duffel.
 	desc = "A large duffel bag for holding extra tactical supplies."
 	icon_state = "duffel-syndie"
 	inhand_icon_state = "duffel-syndieammo"
 	slowdown = 0
 	resistance_flags = FIRE_PROOF
+	special_desc_requirement = EXAMINE_CHECK_SYNDICATE // Skyrat edit
+	special_desc = "This duffel bag has the Syndicate logo stiched on the inside. It appears to be made from lighter yet sturdier materials." // Skyrat edit
 
 /obj/item/storage/backpack/duffelbag/syndie/ComponentInitialize()
 	. = ..()
@@ -591,7 +541,7 @@
 
 /obj/item/storage/backpack/duffelbag/syndie/surgery
 	name = "surgery duffel bag"
-	desc = "A suspicious looking duffel bag for holding surgery tools."
+	desc = "A large duffel bag for holding extra supplies - this one has a material inlay with space for various sharp-looking tools." //SKYRAT EDIT, to match the security surgery bag
 	icon_state = "duffel-syndiemed"
 	inhand_icon_state = "duffel-syndiemed"
 

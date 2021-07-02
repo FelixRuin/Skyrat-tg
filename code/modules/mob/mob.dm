@@ -18,7 +18,11 @@
  *
  * qdels any client colours in place on this mob
  *
+ * Clears any refs to the mob inside its current location
+ *
  * Ghostizes the client attached to this mob
+ *
+ * If our mind still exists, clear its current var to prevent harddels
  *
  * Parent call
  */
@@ -26,6 +30,7 @@
 	remove_from_mob_list()
 	remove_from_dead_mob_list()
 	remove_from_alive_mob_list()
+	remove_from_mob_suicide_list()
 	focus = null
 	if(length(progressbars))
 		stack_trace("[src] destroyed with elements in its progressbars list")
@@ -38,7 +43,10 @@
 			observe.reset_perspective(null)
 	qdel(hud_used)
 	QDEL_LIST(client_colours)
-	ghostize()
+	clear_client_in_contents() //Gotta do this here as well as Logout, since client will be null by the time it gets there, cause of that ghostize
+	ghostize() //False, since we're deleting it currently
+	if(mind?.current == src) //Let's just be safe yeah? This will occasionally be cleared, but not always. Can't do it with ghostize without changing behavior
+		mind.set_current(null)
 	return ..()
 
 
@@ -60,7 +68,7 @@
  * * set a random nutrition level
  * * Intialize the movespeed of the mob
  */
-/mob/Initialize()
+/mob/Initialize(mapload)
 	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_MOB_CREATED, src)
 	add_to_mob_list()
 	if(stat == DEAD)
@@ -118,12 +126,12 @@
 
 	var/datum/gas_mixture/environment = loc.return_air()
 
-	var/t =	"<span class='notice'>Coordinates: [x],[y] </span>\n"
-	t +=	"<span class='danger'>Temperature: [environment.temperature] </span>\n"
+	var/t = "[span_notice("Coordinates: [x],[y] ")]\n"
+	t += "[span_danger("Temperature: [environment.temperature] ")]\n"
 	for(var/id in environment.gases)
 		var/gas = environment.gases[id]
 		if(gas[MOLES])
-			t+="<span class='notice'>[gas[GAS_META][META_GAS_NAME]]: [gas[MOLES]] </span>\n"
+			t+="[span_notice("[gas[GAS_META][META_GAS_NAME]]: [gas[MOLES]] ")]\n"
 
 	to_chat(usr, t)
 
@@ -208,8 +216,9 @@
 		if(M.see_invisible < invisibility)//if src is invisible to M
 			msg = blind_message
 		else if(T != loc && T != src) //if src is inside something and not a turf.
-			msg = blind_message
-		else if(T.lighting_object && T.lighting_object.invisibility <= M.see_invisible && T.is_softly_lit() && !in_range(T,M)) //if it is too dark, unless we're right next to them.
+			if(M != loc) // Only give the blind message to hearers that aren't the location
+				msg = blind_message
+		else if(M.lighting_alpha > LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE && T.is_softly_lit() && !in_range(T,M)) //if it is too dark, unless we're right next to them.
 			msg = blind_message
 		if(!msg)
 			continue
@@ -332,7 +341,7 @@
 		if(qdel_on_fail)
 			qdel(W)
 		else if(!disable_warning)
-			to_chat(src, "<span class='warning'>You are unable to equip that!</span>")
+			to_chat(src, span_warning("You are unable to equip that!"))
 		return FALSE
 	equip_to_slot(W, slot, initial, redraw_mob) //This proc should not ever fail.
 	return TRUE
@@ -436,11 +445,6 @@
 				client.eye = loc
 		return 1
 
-/// Show the mob's inventory to another mob
-/mob/proc/show_inv(mob/user)
-	return
-
-
 /**
  * Examine a mob
  *
@@ -474,7 +478,7 @@
 	else
 		result = A.examine(src) // if a tree is examined but no client is there to see it, did the tree ever really exist?
 
-	to_chat(src, result.Join("\n"))
+	to_chat(src, "<span class='infoplain'>[result.Join("\n")]</span>")
 	SEND_SIGNAL(src, COMSIG_MOB_EXAMINATE, A)
 
 
@@ -485,29 +489,29 @@
 /mob/living/blind_examine_check(atom/examined_thing)
 	//need to be next to something and awake
 	if(!Adjacent(examined_thing) || incapacitated())
-		to_chat(src, "<span class='warning'>Something is there, but you can't see it!</span>")
+		to_chat(src, span_warning("Something is there, but you can't see it!"))
 		return FALSE
 
 	//you can examine things you're holding directly, but you can't examine other things if your hands are full
 	/// the item in our active hand
 	var/active_item = get_active_held_item()
 	if(active_item && active_item != examined_thing)
-		to_chat(src, "<span class='warning'>Your hands are too full to examine this!</span>")
+		to_chat(src, span_warning("Your hands are too full to examine this!"))
 		return FALSE
 
 	//you can only initiate exaimines if you have a hand, it's not disabled, and only as many examines as you have hands
 	/// our active hand, to check if it's disabled/detatched
 	var/obj/item/bodypart/active_hand = has_active_hand()? get_active_hand() : null
 	if(!active_hand || active_hand.bodypart_disabled || LAZYLEN(do_afters) >= usable_hands)
-		to_chat(src, "<span class='warning'>You don't have a free hand to examine this!</span>")
+		to_chat(src, span_warning("You don't have a free hand to examine this!"))
 		return FALSE
 
 	//you can only queue up one examine on something at a time
 	if(DOING_INTERACTION_WITH_TARGET(src, examined_thing))
 		return FALSE
 
-	to_chat(src, "<span class='notice'>You start feeling around for something...</span>")
-	visible_message("<span class='notice'> [name] begins feeling around for \the [examined_thing.name]...</span>")
+	to_chat(src, span_notice("You start feeling around for something..."))
+	visible_message(span_notice(" [name] begins feeling around for \the [examined_thing.name]..."))
 
 	/// how long it takes for the blind person to find the thing they're examining
 	var/examine_delay_length = rand(1 SECONDS, 2 SECONDS)
@@ -519,7 +523,7 @@
 		examine_delay_length *= 2
 
 	if(examine_delay_length > 0 && !do_after(src, examine_delay_length, target = examined_thing))
-		to_chat(src, "<span class='notice'>You can't get a good feel for what is there.</span>")
+		to_chat(src, span_notice("You can't get a good feel for what is there."))
 		return FALSE
 
 	//now we touch the thing we're examining
@@ -544,7 +548,7 @@
  *
  * Note that if either party has their face obscured, the other won't get the notice about the eye contact
  * Also note that examine_more() doesn't proc this or extend the timer, just because it's simpler this way and doesn't lose much.
- *	The nice part about relying on examining is that we don't bother checking visibility, because we already know they were both visible to each other within the last second, and the one who triggers it is currently seeing them
+ * The nice part about relying on examining is that we don't bother checking visibility, because we already know they were both visible to each other within the last second, and the one who triggers it is currently seeing them
  */
 /mob/proc/handle_eye_contact(mob/living/examined_mob)
 	return
@@ -558,11 +562,11 @@
 
 	// check to see if their face is blocked or, if not, a signal blocks it
 	if(examined_mob.is_face_visible() && SEND_SIGNAL(src, COMSIG_MOB_EYECONTACT, examined_mob, TRUE) != COMSIG_BLOCK_EYECONTACT)
-		var/msg = "<span class='smallnotice'>You make eye contact with [examined_mob].</span>"
+		var/msg = span_smallnotice("You make eye contact with [examined_mob].")
 		addtimer(CALLBACK(GLOBAL_PROC, .proc/to_chat, src, msg), 3) // so the examine signal has time to fire and this will print after
 
 	if(is_face_visible() && SEND_SIGNAL(examined_mob, COMSIG_MOB_EYECONTACT, src, FALSE) != COMSIG_BLOCK_EYECONTACT)
-		var/msg = "<span class='smallnotice'>[src] makes eye contact with you.</span>"
+		var/msg = span_smallnotice("[src] makes eye contact with you.")
 		addtimer(CALLBACK(GLOBAL_PROC, .proc/to_chat, examined_mob, msg), 3)
 
 /**
@@ -589,6 +593,7 @@
 
 	point_at(A)
 
+	SEND_SIGNAL(src, COMSIG_MOB_POINTED, A)
 	return TRUE
 
 /**
@@ -603,7 +608,7 @@
 
 ///Can this mob resist (default FALSE)
 /mob/proc/can_resist()
-	return FALSE		//overridden in living.dm
+	return FALSE //overridden in living.dm
 
 ///Spin this mob around it's central axis
 /mob/proc/spin(spintime, speed)
@@ -630,11 +635,11 @@
 
 ///Update the pulling hud icon
 /mob/proc/update_pull_hud_icon()
-	hud_used?.pull_icon?.update_icon()
+	hud_used?.pull_icon?.update_appearance()
 
 ///Update the resting hud icon
 /mob/proc/update_rest_hud_icon()
-	hud_used?.rest_icon?.update_icon()
+	hud_used?.rest_icon?.update_appearance()
 
 /**
  * Verb to activate the object in your held hand
@@ -703,16 +708,21 @@
 	set name = "Respawn"
 	set category = "OOC"
 
-	if (CONFIG_GET(flag/norespawn) && (!check_rights_for(usr.client, R_ADMIN) || alert(usr, "Respawn configs disabled. Do you want to use your permissions to circumvent it?", "Respawn", "Yes", "No") != "Yes"))
+	if (CONFIG_GET(flag/norespawn) && (!check_rights_for(usr.client, R_ADMIN) || tgui_alert(usr, "Respawn configs disabled. Do you want to use your permissions to circumvent it?", "Respawn", list("Yes", "No")) != "Yes"))
 		return
 
 	if ((stat != DEAD || !( SSticker )))
-		to_chat(usr, "<span class='boldnotice'>You must be dead to use this!</span>")
+		to_chat(usr, span_boldnotice("You must be dead to use this!"))
 		return
+
+	if(ckey)
+		if(is_banned_from(ckey, BAN_RESPAWN))
+			to_chat(usr, "<span class='boldnotice'>You are respawn banned, you can't respawn!</span>")
+			return
 
 	log_game("[key_name(usr)] used abandon mob.")
 
-	to_chat(usr, "<span class='boldnotice'>Please roleplay correctly!</span>")
+	to_chat(usr, span_boldnotice("Please roleplay correctly!"))
 
 	if(!client)
 		log_game("[key_name(usr)] AM failed due to disconnect.")
@@ -784,12 +794,6 @@
 			else
 				user.stripPanelEquip(what,src,slot)
 
-		if(user.machine == src)
-			if(Adjacent(user))
-				show_inv(user)
-			else
-				user << browse(null,"window=mob[REF(src)]")
-
 // The src mob is trying to strip an item from someone
 // Defined in living.dm
 /mob/proc/stripPanelUnequip(obj/item/what, mob/who)
@@ -813,28 +817,6 @@
 		return
 	if(isAI(M))
 		return
-/**
- * Handle the result of a click drag onto this mob
- *
- * For mobs this just shows the inventory
- */
-/mob/MouseDrop_T(atom/dropping, atom/user)
-	. = ..()
-
-	// Our mouse drop has already been handled by something else. Most likely buckling code.
-	// Since it has already been handled, we don't need to show inventory.
-	if(.)
-		return
-
-	if(ismob(dropping) && src == user && dropping != user)
-		var/mob/M = dropping
-		var/mob/U = user
-		if(iscyborg(U))
-			var/mob/living/silicon/robot/cyborg = U
-			if(cyborg.combat_mode)
-				M.show_inv(cyborg)
-		else
-			M.show_inv(U)
 
 ///Is the mob muzzled (default false)
 /mob/proc/is_muzzled()
@@ -943,7 +925,7 @@
 /mob/proc/swap_hand()
 	var/obj/item/held_item = get_active_held_item()
 	if(SEND_SIGNAL(src, COMSIG_MOB_SWAP_HANDS, held_item) & COMPONENT_BLOCK_SWAP)
-		to_chat(src, "<span class='warning'>Your other hand is too busy holding [held_item].</span>")
+		to_chat(src, span_warning("Your other hand is too busy holding [held_item]."))
 		return FALSE
 	return TRUE
 
@@ -1011,9 +993,9 @@
 	var/turf/T = get_turf(src)
 	if(M.loc != T)
 		var/old_density = density
-		density = FALSE
+		density = FALSE // Hacky and doesn't use set_density()
 		var/can_step = step_towards(M, T)
-		density = old_density
+		density = old_density // Avoid changing density directly in normal circumstances, without the setter.
 		if(!can_step)
 			return FALSE
 	return ..()
@@ -1138,6 +1120,7 @@
 			if(ID.registered_name == oldname)
 				ID.registered_name = newname
 				ID.update_label()
+				ID.update_icon()
 				if(ID.registered_account?.account_holder == oldname)
 					ID.registered_account.account_holder = newname
 				if(!search_pda)
@@ -1173,19 +1156,17 @@
 
 ///Update the mouse pointer of the attached client in this mob
 /mob/proc/update_mouse_pointer()
-	if (!client)
+	if(!client)
 		return
 	client.mouse_pointer_icon = initial(client.mouse_pointer_icon)
 	if(examine_cursor_icon && client.keys_held["Shift"]) //mouse shit is hardcoded, make this non hard-coded once we make mouse modifiers bindable
 		client.mouse_pointer_icon = examine_cursor_icon
-	else if (ismecha(loc))
-		var/obj/vehicle/sealed/mecha/M = loc
-		if(M.mouse_pointer)
-			client.mouse_pointer_icon = M.mouse_pointer
-	else if (istype(loc, /obj/vehicle/sealed))
+	if(istype(loc, /obj/vehicle/sealed))
 		var/obj/vehicle/sealed/E = loc
 		if(E.mouse_pointer)
 			client.mouse_pointer_icon = E.mouse_pointer
+	if(client.mouse_override_icon)
+		client.mouse_pointer_icon = client.mouse_override_icon
 
 
 ///This mob is abile to read books
@@ -1194,10 +1175,10 @@
 ///Can this mob read (is literate and not blind)
 /mob/proc/can_read(obj/O)
 	if(is_blind())
-		to_chat(src, "<span class='warning'>As you are trying to read [O], you suddenly feel very stupid!</span>")
+		to_chat(src, span_warning("As you are trying to read [O], you suddenly feel very stupid!"))
 		return
 	if(!is_literate())
-		to_chat(src, "<span class='notice'>You try to read [O], but can't comprehend any of it.</span>")
+		to_chat(src, span_notice("You try to read [O], but can't comprehend any of it."))
 		return
 	return TRUE
 
@@ -1219,6 +1200,7 @@
 	VV_DROPDOWN_OPTION(VV_HK_DIRECT_CONTROL, "Assume Direct Control")
 	VV_DROPDOWN_OPTION(VV_HK_GIVE_DIRECT_CONTROL, "Give Direct Control")
 	VV_DROPDOWN_OPTION(VV_HK_OFFER_GHOSTS, "Offer Control to Ghosts")
+	VV_DROPDOWN_OPTION(VV_HK_SDQL_SPELL, "Give SDQL Spell")
 
 /mob/vv_do_topic(list/href_list)
 	. = ..()
@@ -1270,7 +1252,10 @@
 		if(!check_rights(NONE))
 			return
 		offer_control(src)
-
+	if(href_list[VV_HK_SDQL_SPELL])
+		if(!check_rights(R_DEBUG))
+			return
+		usr.client.cmd_give_sdql_spell(src)
 /**
  * extra var handling for the logging var
  */
@@ -1364,3 +1349,21 @@
 
 	if(. && slowdown_edit && isnum(diff))
 		add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/admin_varedit, multiplicative_slowdown = diff)
+
+/mob/proc/set_active_storage(new_active_storage)
+	if(active_storage)
+		UnregisterSignal(active_storage, COMSIG_PARENT_QDELETING)
+	active_storage = new_active_storage
+	if(active_storage)
+		RegisterSignal(active_storage, COMSIG_PARENT_QDELETING, .proc/active_storage_deleted)
+
+/mob/proc/active_storage_deleted(datum/source)
+	SIGNAL_HANDLER
+	set_active_storage(null)
+
+///Clears the client in contents list of our current "eye". Prevents hard deletes
+/mob/proc/clear_client_in_contents()
+	if(client?.movingmob) //In the case the client was transferred to another mob and not deleted.
+		client.movingmob.client_mobs_in_contents -= src
+		UNSETEMPTY(client.movingmob.client_mobs_in_contents)
+		client.movingmob = null

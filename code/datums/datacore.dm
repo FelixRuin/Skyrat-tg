@@ -138,7 +138,7 @@
 	var/datum/data/record/foundrecord = find_record("name", name, GLOB.data_core.general)
 	if(foundrecord)
 		foundrecord.fields["rank"] = assignment
-
+/* SKYRAT EDIT MOVAL - OVERWRITTEN IN ALTJOBTITLES
 /datum/datacore/proc/get_manifest()
 	var/list/manifest_out = list(
 		"Command",
@@ -152,7 +152,7 @@
 	)
 	var/list/departments = list(
 		"Command" = GLOB.command_positions,
-		"Security" = GLOB.security_positions,
+		"Security" = GLOB.security_positions + GLOB.security_sub_positions,
 		"Engineering" = GLOB.engineering_positions,
 		"Medical" = GLOB.medical_positions,
 		"Science" = GLOB.science_positions,
@@ -160,6 +160,8 @@
 		"Service" = GLOB.service_positions,
 		"Silicon" = GLOB.nonhuman_positions
 	)
+	var/list/heads = GLOB.command_positions + list("Quartermaster")
+
 	for(var/datum/data/record/t in GLOB.data_core.general)
 		var/name = t.fields["name"]
 		var/rank = t.fields["rank"]
@@ -169,12 +171,18 @@
 			if(rank in jobs)
 				if(!manifest_out[department])
 					manifest_out[department] = list()
-				manifest_out[department] += list(list(
-					"name" = name,
-					"rank" = rank
-				))
+				// Append to beginning of list if captain or department head
+				if (rank == "Captain" || (department != "Command" && (rank in heads)))
+					manifest_out[department] = list(list(
+						"name" = name,
+						"rank" = rank
+					)) + manifest_out[department]
+				else
+					manifest_out[department] += list(list(
+						"name" = name,
+						"rank" = rank
+					))
 				has_department = TRUE
-				break
 		if(!has_department)
 			if(!manifest_out["Misc"])
 				manifest_out["Misc"] = list()
@@ -186,6 +194,7 @@
 		if (!manifest_out[department])
 			manifest_out -= department
 	return manifest_out
+*/
 
 /datum/datacore/proc/get_manifest_html(monochrome = FALSE)
 	var/list/manifest = get_manifest()
@@ -227,7 +236,12 @@
 			assignment = H.job
 		else
 			assignment = "Unassigned"
-
+		//SKYRAT EDIT ADD - ALTERNATE JOB TITLES
+		if(H.client && H.client.prefs && H.client.prefs.alt_titles_preferences[assignment]) // latejoin
+			assignment = H.client.prefs.alt_titles_preferences[assignment]
+		else if(C && C.prefs && C.prefs.alt_titles_preferences[assignment]) // roundstart - yes both do separate things i don't fucking know why but they do and if they're not both there then they don't fucking work leave me ALONE
+			assignment = C.prefs.alt_titles_preferences[assignment]
+		//SKYRAT EDIT ADD END
 		var/static/record_id_num = 1001
 		var/id = num2hex(record_id_num++,6)
 		if(!C)
@@ -247,71 +261,83 @@
 		//These records should ~really~ be merged or something
 		//General Record
 		var/datum/data/record/G = new()
-		G.fields["id"]			= id
-		G.fields["name"]		= H.real_name
-		G.fields["rank"]		= assignment
-		G.fields["age"]			= H.age
-		G.fields["species"]	= H.dna.species.name
-		G.fields["fingerprint"]	= md5(H.dna.uni_identity)
-		G.fields["p_stat"]		= "Active"
-		G.fields["m_stat"]		= "Stable"
-		G.fields["gender"]			= H.gender
+		G.fields["id"] = id
+		G.fields["name"] = H.real_name
+		G.fields["rank"] = assignment
+		G.fields["age"] = H.age
+		G.fields["species"] = H.dna.species.name
+		G.fields["fingerprint"] = md5(H.dna.uni_identity)
+		G.fields["p_stat"] = "Active"
+		G.fields["m_stat"] = "Stable"
+		G.fields["gender"] = H.gender
 		if(H.gender == "male")
 			G.fields["gender"]  = "Male"
 		else if(H.gender == "female")
 			G.fields["gender"]  = "Female"
 		else
 			G.fields["gender"]  = "Other"
-		G.fields["photo_front"]	= photo_front
-		G.fields["photo_side"]	= photo_side
+		G.fields["photo_front"] = photo_front
+		G.fields["photo_side"] = photo_side
+		if(C && C.prefs && C.prefs.general_record) // SKYRAT EDIT ADD - RP RECORDS
+			G.fields["past_records"] = C.prefs.general_record
+		else
+			G.fields["past_records"] = "" // SKYRAT EDIT END
 		general += G
 
 		//Medical Record
 		var/datum/data/record/M = new()
-		M.fields["id"]			= id
-		M.fields["name"]		= H.real_name
-		M.fields["blood_type"]	= H.dna.blood_type
-		M.fields["b_dna"]		= H.dna.unique_enzymes
-		M.fields["mi_dis"]		= H.get_quirk_string(!medical, CAT_QUIRK_MINOR_DISABILITY)
-		M.fields["mi_dis_d"]	= H.get_quirk_string(medical, CAT_QUIRK_MINOR_DISABILITY)
-		M.fields["ma_dis"]		= H.get_quirk_string(!medical, CAT_QUIRK_MAJOR_DISABILITY)
-		M.fields["ma_dis_d"]	= H.get_quirk_string(medical, CAT_QUIRK_MAJOR_DISABILITY)
-		M.fields["cdi"]			= "None"
-		M.fields["cdi_d"]		= "No diseases have been diagnosed at the moment."
-		M.fields["notes"]		= H.get_quirk_string(!medical, CAT_QUIRK_NOTES)
-		M.fields["notes_d"]		= H.get_quirk_string(medical, CAT_QUIRK_NOTES)
+		M.fields["id"] = id
+		M.fields["name"] = H.real_name
+		M.fields["blood_type"] = H.dna.blood_type
+		M.fields["b_dna"] = H.dna.unique_enzymes
+		M.fields["mi_dis"] = H.get_quirk_string(!medical, CAT_QUIRK_MINOR_DISABILITY)
+		M.fields["mi_dis_d"] = H.get_quirk_string(medical, CAT_QUIRK_MINOR_DISABILITY)
+		M.fields["ma_dis"] = H.get_quirk_string(!medical, CAT_QUIRK_MAJOR_DISABILITY)
+		M.fields["ma_dis_d"] = H.get_quirk_string(medical, CAT_QUIRK_MAJOR_DISABILITY)
+		M.fields["cdi"] = "None"
+		M.fields["cdi_d"] = "No diseases have been diagnosed at the moment."
+		M.fields["notes"] = H.get_quirk_string(!medical, CAT_QUIRK_NOTES)
+		M.fields["notes_d"] = H.get_quirk_string(medical, CAT_QUIRK_NOTES)
+		if(C && C.prefs && C.prefs.general_record) // SKYRAT EDIT ADD - RP RECORDS
+			M.fields["past_records"] = C.prefs.medical_record
+		else
+			M.fields["past_records"] = "" // SKYRAT EDIT END
 		medical += M
 
 		//Security Record
 		var/datum/data/record/S = new()
-		S.fields["id"]			= id
-		S.fields["name"]		= H.real_name
-		S.fields["criminal"]	= "None"
-		S.fields["citation"]	= list()
-		S.fields["crim"]		= list()
-		S.fields["notes"]		= "No notes."
+		S.fields["id"] = id
+		S.fields["name"] = H.real_name
+		S.fields["criminal"] = "None"
+		S.fields["citation"] = list()
+		S.fields["crim"] = list()
+		S.fields["notes"] = "No notes."
+		if(C && C.prefs && C.prefs.general_record) // SKYRAT EDIT ADD - RP RECORDS
+			S.fields["past_records"] = C.prefs.security_record
+		else
+			S.fields["past_records"] = "" // SKYRAT EDIT END
 		security += S
 
 		//Locked Record
 		var/datum/data/record/L = new()
-		L.fields["id"]			= md5("[H.real_name][H.mind.assigned_role]")	//surely this should just be id, like the others?
-		L.fields["name"]		= H.real_name
-		L.fields["rank"] 		= H.mind.assigned_role
-		L.fields["age"]			= H.age
-		L.fields["gender"]			= H.gender
+		L.fields["id"] = md5("[H.real_name][H.mind.assigned_role]") //surely this should just be id, like the others?
+		L.fields["name"] = H.real_name
+		L.fields["rank"] = H.mind.assigned_role
+		L.fields["age"] = H.age
+		L.fields["gender"] = H.gender
 		if(H.gender == "male")
 			G.fields["gender"]  = "Male"
 		else if(H.gender == "female")
 			G.fields["gender"]  = "Female"
 		else
 			G.fields["gender"]  = "Other"
-		L.fields["blood_type"]	= H.dna.blood_type
-		L.fields["b_dna"]		= H.dna.unique_enzymes
-		L.fields["identity"]	= H.dna.uni_identity
-		L.fields["species"]		= H.dna.species.type
-		L.fields["features"]	= H.dna.features
-		L.fields["image"]		= image
-		L.fields["mindref"]		= H.mind
+		L.fields["blood_type"] = H.dna.blood_type
+		L.fields["b_dna"] = H.dna.unique_enzymes
+		L.fields["identity"] = H.dna.uni_identity
+		L.fields["species"] = H.dna.species.type
+		L.fields["features"] = H.dna.features
+		L.fields["image"] = image
+		L.fields["mindref"] = H.mind
 		locked += L
 	return
 

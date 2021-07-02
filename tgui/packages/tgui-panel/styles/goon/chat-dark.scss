@@ -311,7 +311,7 @@ em {
   font-weight: bold;
 }
 
-.say, .emote, .infoplain {
+.say, .emote, .infoplain, .oocplain, .warningplain {
 }
 
 .deadsay {
@@ -330,6 +330,9 @@ em {
   color: #88ff88;
 }
 
+/* RADIO COLORS */
+/* IF YOU CHANGE THIS KEEP IT IN SYNC WITH TGUI CONSTANTS */
+
 .radio {
   color: #1ecc43;
 }
@@ -343,7 +346,7 @@ em {
 }
 
 .secradio {
-  color: #ec3554;
+  color: #dd3535;
 }
 
 .medradio {
@@ -380,6 +383,14 @@ em {
 
 .blueteamradio {
   color: #3434fd;
+}
+
+.greenteamradio {
+  color: #34fd34;
+}
+
+.yellowteamradio {
+  color: #fdfd34;
 }
 
 .yell {
@@ -749,6 +760,57 @@ em {
   }
 }
 
+// SKYRAT ADDITION BEGIN
+.velvet {
+  color: #660015;
+  font-weight: bold;
+  animation: velvet 5000ms infinite;
+}
+@keyframes velvet {
+  0% {
+    color: #400020;
+  }
+  40% {
+    color: #ff0000;
+  }
+  50% {
+    color: #ff8888;
+  }
+  60% {
+    color: #ff0000;
+  }
+  100% {
+    color: #400020;
+  }
+}
+
+.hexnut {
+  color: #0099ff;
+  font-weight: bold;
+  animation: hexnut 5000ms infinite;
+  animation-direction: alternate;
+}
+
+@keyframes hexnut {
+  0% {
+    color: #0099ff;
+  }
+  35% {
+    color: #a64dff;
+  }
+  50% {
+    color: #00997a;
+  }
+  60% {
+    color: #ffb31a;
+  }
+  100% {
+    color: #ff33cc;
+  }
+}
+
+// SKYRAT ADDITION END
+
 .phobia {
   color: #dd0000;
   font-weight: bold;
@@ -772,6 +834,10 @@ em {
 .icon {
   height: 1em;
   width: auto;
+}
+
+.bigicon {
+  font-size: 2.5em;
 }
 
 .memo {

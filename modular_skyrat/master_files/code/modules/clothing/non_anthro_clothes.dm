@@ -7,7 +7,6 @@
 
 /obj/item/clothing/head/helmet/gladiator
     mutant_variants = NONE
-
 /obj/item/clothing/head/chefhat
     mutant_variants = NONE
 
@@ -143,6 +142,18 @@
 /obj/item/clothing/head/santa
 	mutant_variants = NONE
 
+/obj/item/clothing/head/helmet/durathread
+	mutant_variants = NONE
+
+/obj/item/clothing/head/hooded/cloakhood/drake
+	mutant_variants = NONE
+
+/obj/item/clothing/head/hooded/cloakhood/goliath
+	mutant_variants = NONE
+
+/obj/item/clothing/head/nun_hood
+	mutant_variants = NONE
+
 //EARS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //EYES>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -182,9 +193,6 @@
 /obj/item/clothing/under/misc/bouncer
 	mutant_variants = NONE
 
-/obj/item/clothing/under/rank/engineering/engineer/hazard
-	mutant_variants = NONE
-
 /obj/item/clothing/under/rank/security/officer/spacepol
 	mutant_variants = NONE
 
@@ -193,9 +201,11 @@
 
 /obj/item/clothing/under/syndicate/skirt
 	mutant_variants = NONE
+	body_parts_covered = CHEST|GROIN|ARMS
 
 /obj/item/clothing/under/syndicate/tacticool/skirt
 	mutant_variants = NONE
+	body_parts_covered = CHEST|GROIN|ARMS
 
 /obj/item/clothing/under/rank/captain/suit/skirt
 	mutant_variants = NONE
@@ -219,6 +229,9 @@
 	mutant_variants = NONE
 
 /obj/item/clothing/under/suit/black/skirt
+	mutant_variants = NONE
+
+/obj/item/clothing/under/rank/captain/pilot/skirt
 	mutant_variants = NONE
 
 /obj/item/clothing/suit/toggle/labcoat/roboticist
@@ -283,5 +296,13 @@
 /obj/item/clothing/suit/hooded/chaplain_hoodie
 	mutant_variants = NONE
 
+/obj/item/clothing/suit/curator
+	mutant_variants = NONE
+
+/obj/item/clothing/suit/hooded/chaplainsuit
+	mutant_variants = NONE
+
+/obj/item/clothing/suit/chaplainsuit
+	mutant_variants = NONE
 
 //FEET>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

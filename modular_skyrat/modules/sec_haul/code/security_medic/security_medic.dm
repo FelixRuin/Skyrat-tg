@@ -11,11 +11,9 @@
 	exp_requirements = 120
 	exp_type = EXP_TYPE_MEDICAL
 
-
 	outfit = /datum/outfit/job/security_medic
+	plasmaman_outfit = /datum/outfit/plasmaman/security
 
-	access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_MAINT_TUNNELS, ACCESS_MECH_SECURITY, ACCESS_MORGUE, ACCESS_WEAPONS, ACCESS_FORENSICS_LOCKERS, ACCESS_MINERAL_STOREROOM, ACCESS_MEDICAL, ACCESS_MORGUE, ACCESS_SURGERY, ACCESS_CHEMISTRY, ACCESS_GENETICS, ACCESS_CLONING, ACCESS_VIROLOGY)
-	minimal_access = list(ACCESS_SECURITY, ACCESS_SEC_DOORS, ACCESS_BRIG, ACCESS_COURT, ACCESS_WEAPONS, ACCESS_MECH_SECURITY, ACCESS_MINERAL_STOREROOM, ACCESS_MEDICAL, ACCESS_MORGUE, ACCESS_SURGERY, ACCESS_CLONING, ACCESS_MAINT_TUNNELS)
 	paycheck = PAYCHECK_MEDIUM
 	paycheck_department = ACCOUNT_SEC
 
@@ -25,6 +23,12 @@
 	display_order = JOB_DISPLAY_ORDER_SECURITY_MEDIC
 	bounty_types = CIV_JOB_SEC
 
+	family_heirlooms = list(/obj/item/clothing/neck/stethoscope, /obj/item/roller, /obj/item/book/manual/wiki/security_space_law)
+
+/datum/job/security_medic/after_spawn(mob/living/carbon/human/H, mob/M)
+	. = ..()
+	to_chat(M, "<span class='redtext'>As the Security Medic, you are comparable in medical knowledge to a Paramedic, not a one man surgical bay. \
+	your main duty is healing on the field or in combat situations. Leave revivals and chemistry work to trained professionals.")
 
 /datum/outfit/job/security_medic
 	name = "Security Medic"
@@ -33,14 +37,14 @@
 	belt = /obj/item/pda/security
 	ears = /obj/item/radio/headset/headset_medsec
 	uniform = /obj/item/clothing/under/rank/security/peacekeeper/security_medic
-	gloves = /obj/item/clothing/gloves/color/latex
+	gloves = /obj/item/clothing/gloves/color/latex/nitrile
 	shoes = /obj/item/clothing/shoes/combat/peacekeeper
 	glasses = /obj/item/clothing/glasses/hud/health/sunglasses
 	suit = /obj/item/clothing/suit/armor/vest/peacekeeper/security_medic
-	l_hand = /obj/item/storage/firstaid/advanced
+	l_hand = /obj/item/storage/firstaid/brute
 	head = /obj/item/clothing/head/beret/sec/peacekeeper/security_medic
 
-	backpack_contents = list(/obj/item/melee/classic_baton/telescopic, /obj/item/storage/box/gunset/security_medic, /obj/item/defibrillator/compact/loaded)
+	backpack_contents = list(/obj/item/melee/classic_baton/telescopic, /obj/item/storage/box/gunset/security_medic)
 
 	backpack = /obj/item/storage/backpack/security/peacekeeper
 	satchel = /obj/item/storage/backpack/satchel/sec/peacekeeper
@@ -49,6 +53,8 @@
 	box = /obj/item/storage/box/survival/security
 
 	implants = list(/obj/item/implant/mindshield)
+
+	id_trim = /datum/id_trim/job/security_medic
 
 /obj/effect/landmark/start/security_medic
 	name = "Security Medic"
@@ -82,3 +88,4 @@
 	new /obj/item/clothing/suit/straight_jacket(src)
 	new /obj/item/storage/belt/medical(src)
 	new /obj/item/storage/belt/security/peacekeeper/full(src)
+	new /obj/item/clothing/under/rank/medical/doctor/red(src)

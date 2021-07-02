@@ -107,7 +107,7 @@ Contains:
 	name = "Engineering Voidsuit"
 	icon_state = "void"
 	inhand_icon_state = "void"
-	desc = "A CentCom engineering dark red space suit. Age has degraded the suit making is difficult to move around in."
+	desc = "A CentCom engineering dark red space suit. Age has degraded the suit making it difficult to move around in."
 	slowdown = 4
 	allowed = list(/obj/item/flashlight, /obj/item/tank/internals, /obj/item/multitool)
 
@@ -131,28 +131,23 @@ Contains:
 
 	//Space pirate outfit
 /obj/item/clothing/head/helmet/space/pirate
-	name = "pirate hat"
-	desc = "Yarr."
-	icon_state = "pirate"
-	inhand_icon_state = "pirate"
+	name = "modified EVA helmet"
+	desc = "A modified helmet to allow space pirates to intimidate their customers whilst staying safe from the void. Comes with some additional protection."
+	icon_state = "spacepirate"
+	inhand_icon_state = "spacepiratehelmet"
 	armor = list(MELEE = 30, BULLET = 50, LASER = 30,ENERGY = 40, BOMB = 30, BIO = 30, RAD = 30, FIRE = 60, ACID = 75)
-	flags_inv = HIDEHAIR
 	strip_delay = 40
 	equip_delay_other = 20
-	flags_cover = HEADCOVERSEYES
 
 /obj/item/clothing/head/helmet/space/pirate/bandana
-	name = "pirate bandana"
-	icon_state = "bandana"
-	inhand_icon_state = "bandana"
+	icon_state = "spacebandana"
+	inhand_icon_state = "spacepiratehelmet"
 
 /obj/item/clothing/suit/space/pirate
-	name = "pirate coat"
-	desc = "Yarr."
-	icon_state = "pirate"
-	inhand_icon_state = "pirate"
+	name = "modified EVA suit"
+	desc = "A modified suit to allow space pirates to board shuttles and stations while avoiding the maw of the void. Comes with additional protection, and is lighter to move in."
+	icon_state = "spacepirate"
 	w_class = WEIGHT_CLASS_NORMAL
-	flags_inv = 0
 	allowed = list(/obj/item/gun, /obj/item/ammo_box, /obj/item/ammo_casing, /obj/item/melee/baton, /obj/item/restraints/handcuffs, /obj/item/tank/internals, /obj/item/melee/transforming/energy/sword/pirate, /obj/item/clothing/glasses/eyepatch, /obj/item/reagent_containers/food/drinks/bottle/rum)
 	slowdown = 0
 	armor = list(MELEE = 30, BULLET = 50, LASER = 30,ENERGY = 40, BOMB = 30, BIO = 30, RAD = 30, FIRE = 60, ACID = 75)
@@ -315,7 +310,7 @@ Contains:
 	desc = "Spaceworthy and it looks like a space carp's head, smells like one too."
 	icon_state = "carp_helm"
 	inhand_icon_state = "syndicate"
-	armor = list(MELEE = -20, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, BIO = 100, RAD = 75, FIRE = 60, ACID = 75)	//As whimpy as a space carp
+	armor = list(MELEE = -20, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, BIO = 100, RAD = 75, FIRE = 60, ACID = 75) //As whimpy as a space carp
 	light_system = NO_LIGHT_SUPPORT
 	light_range = 0 //luminosity when on
 	actions_types = list()
@@ -330,9 +325,9 @@ Contains:
 	desc = "A slimming piece of dubious space carp technology, you suspect it won't stand up to hand-to-hand blows."
 	icon_state = "carp_suit"
 	inhand_icon_state = "space_suit_syndicate"
-	slowdown = 0	//Space carp magic, never stop believing
+	slowdown = 0 //Space carp magic, never stop believing
 	armor = list(MELEE = -20, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, BIO = 100, RAD = 75, FIRE = 60, ACID = 75) //As whimpy whimpy whoo
-	allowed = list(/obj/item/tank/internals, /obj/item/gun/ballistic/rifle/boltaction/harpoon)	//I'm giving you a hint here
+	allowed = list(/obj/item/tank/internals, /obj/item/gun/ballistic/rifle/boltaction/harpoon) //I'm giving you a hint here
 	helmettype = /obj/item/clothing/head/helmet/space/hardsuit/carp
 
 /obj/item/clothing/head/helmet/space/hardsuit/carp/equipped(mob/living/carbon/human/user, slot)
@@ -356,6 +351,7 @@ Contains:
 	icon_state = "hardsuit0-prt"
 	inhand_icon_state = "hardsuit0-prt"
 	hardsuit_type = "prt"
+	mutant_variants = NONE //SKYRAT EDIT ADDITION
 	max_heat_protection_temperature = FIRE_IMMUNITY_MAX_TEMP_PROTECT
 	actions_types = list()
 	resistance_flags = FIRE_PROOF
@@ -436,7 +432,7 @@ Contains:
 
 /obj/item/clothing/head/helmet/space/hardsuit/berserker/examine()
 	. = ..()
-	. += "<span class='notice'>Berserk mode is [berserk_charge]% charged.</span>"
+	. += span_notice("Berserk mode is [berserk_charge]% charged.")
 
 /obj/item/clothing/head/helmet/space/hardsuit/berserker/process(delta_time)
 	. = ..()
@@ -458,11 +454,11 @@ Contains:
 		berserk_value *= PROJECTILE_HIT_MULTIPLIER
 	berserk_charge = clamp(round(berserk_charge + berserk_value), 0, MAX_BERSERK_CHARGE)
 	if(berserk_charge >= MAX_BERSERK_CHARGE)
-		to_chat(owner, "<span class='notice'>Berserk mode is fully charged.</span>")
+		to_chat(owner, span_notice("Berserk mode is fully charged."))
 
 /// Starts berserk, giving the wearer 50 melee armor, doubled attacking speed, NOGUNS trait, adding a color and giving them the berserk movespeed modifier
 /obj/item/clothing/head/helmet/space/hardsuit/berserker/proc/berserk_mode(mob/living/carbon/human/user)
-	to_chat(user, "<span class='warning'>You enter berserk mode.</span>")
+	to_chat(user, span_warning("You enter berserk mode."))
 	playsound(user, 'sound/magic/staff_healing.ogg', 50)
 	user.add_movespeed_modifier(/datum/movespeed_modifier/berserk)
 	user.physiology.armor.melee += BERSERK_MELEE_ARMOR_ADDED
@@ -476,7 +472,7 @@ Contains:
 /obj/item/clothing/head/helmet/space/hardsuit/berserker/proc/end_berserk(mob/living/carbon/human/user)
 	if(!berserk_active)
 		return
-	to_chat(user, "<span class='warning'>You exit berserk mode.</span>")
+	to_chat(user, span_warning("You exit berserk mode."))
 	playsound(user, 'sound/magic/summonitems_generic.ogg', 50)
 	user.remove_movespeed_modifier(/datum/movespeed_modifier/berserk)
 	user.physiology.armor.melee -= BERSERK_MELEE_ARMOR_ADDED
@@ -513,7 +509,7 @@ Contains:
 
 /obj/item/clothing/suit/space/fragile/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = MELEE_ATTACK)
 	if(!torn && prob(50))
-		to_chat(owner, "<span class='warning'>[src] tears from the damage, breaking the air-tight seal!</span>")
+		to_chat(owner, span_warning("[src] tears from the damage, breaking the air-tight seal!"))
 		clothing_flags &= ~STOPSPRESSUREDAMAGE
 		name = "torn [src]."
 		desc = "A bulky suit meant to protect the user during emergency situations, at least until someone tore a hole in the suit."

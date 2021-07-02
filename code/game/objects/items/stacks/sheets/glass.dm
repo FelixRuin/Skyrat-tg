@@ -1,8 +1,9 @@
+/** SKYRAT EDIT - MODULARIZATION - SEE SKYRAT_MODULAR/MODULES/MATERIALS_GLASS
 /* Glass stack types
  * Contains:
- *		Glass sheets
- *		Reinforced glass sheets
- *		Glass shards - TODO: Move this into code/game/object/item/weapons
+ * Glass sheets
+ * Reinforced glass sheets
+ * Glass shards - TODO: Move this into code/game/object/item/weapons
  */
 
 /*
@@ -14,7 +15,7 @@ GLOBAL_LIST_INIT(glass_recipes, list ( \
 	new/datum/stack_recipe("glass shard", /obj/item/shard, time = 0, on_floor = TRUE) \
 ))
 
-/obj/item/stack/sheet/glass
+/obj/item/stack/sheet/glass//SKYRAT EDIT - ICON OVERRIDEN BY AESTHETICS - SEE MODULE
 	name = "glass"
 	desc = "HOLY SHEET! That is a lot of glass."
 	singular_name = "glass sheet"
@@ -33,7 +34,7 @@ GLOBAL_LIST_INIT(glass_recipes, list ( \
 	source = /datum/robot_energy_storage/glass
 
 /obj/item/stack/sheet/glass/suicide_act(mob/living/carbon/user)
-	user.visible_message("<span class='suicide'>[user] begins to slice [user.p_their()] neck with \the [src]! It looks like [user.p_theyre()] trying to commit suicide!</span>")
+	user.visible_message(span_suicide("[user] begins to slice [user.p_their()] neck with \the [src]! It looks like [user.p_theyre()] trying to commit suicide!"))
 	return BRUTELOSS
 
 /obj/item/stack/sheet/glass/fifty
@@ -52,7 +53,7 @@ GLOBAL_LIST_INIT(glass_recipes, list ( \
 			return
 		CC.use(5)
 		use(1)
-		to_chat(user, "<span class='notice'>You attach wire to the [name].</span>")
+		to_chat(user, span_notice("You attach wire to the [name]."))
 		var/obj/item/stack/light_w/new_tile = new(user.loc)
 		new_tile.add_fingerprint(user)
 		return
@@ -67,7 +68,7 @@ GLOBAL_LIST_INIT(glass_recipes, list ( \
 			if(QDELETED(src) && replace)
 				user.put_in_hands(RG)
 		else
-			to_chat(user, "<span class='warning'>You need one rod and one sheet of glass to make reinforced glass!</span>")
+			to_chat(user, span_warning("You need one rod and one sheet of glass to make reinforced glass!"))
 		return
 	return ..()
 
@@ -77,7 +78,7 @@ GLOBAL_LIST_INIT(pglass_recipes, list ( \
 	new/datum/stack_recipe("plasma glass shard", /obj/item/shard/plasma, time = 0, on_floor = TRUE) \
 ))
 
-/obj/item/stack/sheet/plasmaglass
+/obj/item/stack/sheet/plasmaglass//SKYRAT EDIT - ICON OVERRIDEN BY AESTHETICS - SEE MODULE
 	name = "plasma glass"
 	desc = "A glass sheet made out of a plasma-silicate alloy. It looks extremely tough and heavily fire resistant."
 	singular_name = "plasma glass sheet"
@@ -112,7 +113,7 @@ GLOBAL_LIST_INIT(pglass_recipes, list ( \
 			if(QDELETED(src) && replace)
 				user.put_in_hands(RG)
 		else
-			to_chat(user, "<span class='warning'>You need one rod and one sheet of plasma glass to make reinforced plasma glass!</span>")
+			to_chat(user, span_warning("You need one rod and one sheet of plasma glass to make reinforced plasma glass!"))
 			return
 	else
 		return ..()
@@ -129,7 +130,7 @@ GLOBAL_LIST_INIT(reinforced_glass_recipes, list ( \
 ))
 
 
-/obj/item/stack/sheet/rglass
+/obj/item/stack/sheet/rglass//SKYRAT EDIT - ICON OVERRIDEN BY AESTHETICS - SEE MODULE
 	name = "reinforced glass"
 	desc = "Glass which seems to have rods or something stuck in them."
 	singular_name = "reinforced glass sheet"
@@ -180,7 +181,7 @@ GLOBAL_LIST_INIT(prglass_recipes, list ( \
 	new/datum/stack_recipe("plasma glass shard", /obj/item/shard/plasma, time = 0, on_floor = TRUE) \
 ))
 
-/obj/item/stack/sheet/plasmarglass
+/obj/item/stack/sheet/plasmarglass//SKYRAT EDIT - ICON OVERRIDEN BY AESTHETICS - SEE MODULE
 	name = "reinforced plasma glass"
 	desc = "A glass sheet made out of a plasma-silicate alloy and a rod matrix. It looks hopelessly tough and nearly fire-proof!"
 	singular_name = "reinforced plasma glass sheet"
@@ -267,7 +268,7 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 
 
 /obj/item/shard/suicide_act(mob/user)
-	user.visible_message("<span class='suicide'>[user] is slitting [user.p_their()] [pick("wrists", "throat")] with the shard of glass! It looks like [user.p_theyre()] trying to commit suicide.</span>")
+	user.visible_message(span_suicide("[user] is slitting [user.p_their()] [pick("wrists", "throat")] with the shard of glass! It looks like [user.p_theyre()] trying to commit suicide."))
 	return (BRUTELOSS)
 
 
@@ -292,6 +293,10 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 	var/turf/T = get_turf(src)
 	if(T && is_station_level(T.z))
 		SSblackbox.record_feedback("tally", "station_mess_created", 1, name)
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = .proc/on_entered,
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
 
 /obj/item/shard/Destroy()
 	. = ..()
@@ -312,7 +317,7 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 	if(ishuman(user))
 		var/mob/living/carbon/human/H = user
 		if(!H.gloves && !HAS_TRAIT(H, TRAIT_PIERCEIMMUNE)) // golems, etc
-			to_chat(H, "<span class='warning'>[src] cuts into your hand!</span>")
+			to_chat(H, span_warning("[src] cuts into your hand!"))
 			H.apply_damage(force*0.5, BRUTE, hit_hand)
 
 /obj/item/shard/attackby(obj/item/I, mob/user, params)
@@ -321,11 +326,11 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 		L.attackby(src, user)
 	else if(istype(I, /obj/item/stack/sheet/cloth))
 		var/obj/item/stack/sheet/cloth/C = I
-		to_chat(user, "<span class='notice'>You begin to wrap the [C] around the [src]...</span>")
+		to_chat(user, span_notice("You begin to wrap the [C] around the [src]..."))
 		if(do_after(user, 35, target = src))
 			var/obj/item/kitchen/knife/shiv/S = new /obj/item/kitchen/knife/shiv
 			C.use(1)
-			to_chat(user, "<span class='notice'>You wrap the [C] around the [src] forming a makeshift weapon.</span>")
+			to_chat(user, span_notice("You wrap the [C] around the [src] forming a makeshift weapon."))
 			remove_item_from_storage(src)
 			qdel(src)
 			user.put_in_hands(S)
@@ -343,16 +348,16 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 			if(G.amount >= G.max_amount)
 				continue
 			G.attackby(NG, user)
-		to_chat(user, "<span class='notice'>You add the newly-formed [NG.name] to the stack. It now contains [NG.amount] sheet\s.</span>")
+		to_chat(user, span_notice("You add the newly-formed [NG.name] to the stack. It now contains [NG.amount] sheet\s."))
 		qdel(src)
 	return TRUE
 
-/obj/item/shard/Crossed(atom/movable/AM)
+/obj/item/shard/proc/on_entered(datum/source, atom/movable/AM)
+	SIGNAL_HANDLER
 	if(isliving(AM))
 		var/mob/living/L = AM
 		if(!(L.movement_type & (FLYING|FLOATING)) || L.buckled)
 			playsound(src, 'sound/effects/glass_step.ogg', HAS_TRAIT(L, TRAIT_LIGHT_STEP) ? 30 : 50, TRUE)
-	return ..()
 
 /obj/item/shard/plasma
 	name = "purple shard"
@@ -363,3 +368,4 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 	custom_materials = list(/datum/material/alloy/plasmaglass=MINERAL_MATERIAL_AMOUNT)
 	icon_prefix = "plasma"
 	weld_material = /obj/item/stack/sheet/plasmaglass
+**/

@@ -7,6 +7,58 @@
 	var/clawfootstep = null
 	var/heavyfootstep = null
 
+//SKYRAT EDIT ADDITION
+//Consider making all of these behaviours a smart component/element? Something that's only applied wherever it needs to be
+//Could probably have the variables on the turf level, and the behaviours being activated/deactived on the component level as the vars are updated
+/turf/open/CanPass(atom/movable/A, turf/T)
+	if(isliving(A))
+		var/turf/AT = get_turf(A)
+		if(AT && AT.turf_height - turf_height <= -TURF_HEIGHT_BLOCK_THRESHOLD)
+			return FALSE
+	return ..()
+
+/turf/open/Exit(atom/movable/mover, atom/newloc)
+	. = ..()
+	if(. && isliving(mover) && mover.has_gravity() && isturf(newloc))
+		var/mob/living/L = mover
+		var/turf/T = get_turf(newloc)
+		if(T && T.turf_height - turf_height <= -TURF_HEIGHT_BLOCK_THRESHOLD)
+			L.on_fall()
+			L.onZImpact(T, 1)
+
+
+/turf/open/MouseDrop_T(mob/living/M, mob/living/user)
+	if(!isliving(M) || !isliving(user) || !M.has_gravity() || !Adjacent(user) || !M.Adjacent(user) || !(user.stat == CONSCIOUS) || user.body_position == LYING_DOWN)
+		return
+	if(!M.has_gravity())
+		return
+	var/turf/T = get_turf(M)
+	if(!T)
+		return
+	if(T.turf_height - turf_height <= -TURF_HEIGHT_BLOCK_THRESHOLD)
+		//Climb up
+		if(user == M)
+			M.visible_message("<span class='notice'>[user] is climbing onto [src]", \
+								"<span class='notice'>You start climbing onto [src].</span>")
+		else
+			M.visible_message("<span class='notice'>[user] is pulling [M] onto [src]", \
+								"<span class='notice'>You start pulling [M] onto [src].</span>")
+		if(do_mob(user, M, 2 SECONDS))
+			M.forceMove(src)
+		return
+	if(turf_height - T.turf_height <= -TURF_HEIGHT_BLOCK_THRESHOLD)
+		//Climb down
+		if(user == M)
+			M.visible_message("<span class='notice'>[user] is descending down to [src]", \
+								"<span class='notice'>You start lowering yourself to [src].</span>")
+		else
+			M.visible_message("<span class='notice'>[user] is lowering [M] down to [src]", \
+								"<span class='notice'>You start lowering [M] down to [src].</span>")
+		if(do_mob(user, M, 2 SECONDS))
+			M.forceMove(src)
+		return
+//SKYRAT EDIT END
+
 //direction is direction of travel of A
 /turf/open/zPassIn(atom/movable/A, direction, turf/source)
 	if(direction == DOWN)
@@ -79,10 +131,10 @@
 	. = ..()
 	AddComponent(/datum/component/wet_floor, TURF_WET_SUPERLUBE, INFINITY, 0, INFINITY, TRUE)
 
-/turf/open/indestructible/honk/Entered(atom/movable/AM)
-	..()
-	if(ismob(AM))
-		playsound(src,sound,50,TRUE)
+/turf/open/indestructible/honk/Entered(atom/movable/arrived, direction)
+	. = ..()
+	if(ismob(arrived))
+		playsound(src, sound, 50, TRUE)
 
 /turf/open/indestructible/necropolis
 	name = "necropolis floor"
@@ -168,13 +220,13 @@
 			excited = TRUE
 			SSair.active_turfs += src
 
-/turf/open/proc/GetHeatCapacity()
+/turf/open/GetHeatCapacity()
 	. = air.heat_capacity()
 
-/turf/open/proc/GetTemperature()
+/turf/open/GetTemperature()
 	. = air.temperature
 
-/turf/open/proc/TakeTemperature(temp)
+/turf/open/TakeTemperature(temp)
 	air.temperature += temp
 	air_update_turf(FALSE, FALSE)
 
@@ -219,7 +271,7 @@
 			if(C.m_intent == MOVE_INTENT_WALK && (lube&NO_SLIP_WHEN_WALKING))
 				return FALSE
 		if(!(lube&SLIDE_ICE))
-			to_chat(C, "<span class='notice'>You slipped[ O ? " on the [O.name]" : ""]!</span>")
+			to_chat(C, span_notice("You slipped[ O ? " on the [O.name]" : ""]!"))
 			playsound(C.loc, 'sound/misc/slip.ogg', 50, TRUE, -3)
 
 		SEND_SIGNAL(C, COMSIG_ON_CARBON_SLIP)
@@ -245,7 +297,7 @@
 		else if(lube&SLIDE_ICE)
 			if(C.force_moving) //If we're already slipping extend it
 				qdel(C.force_moving)
-			new /datum/forced_movement(C, get_ranged_target_turf(C, olddir, 1), 1, FALSE)	//spinning would be bad for ice, fucks up the next dir
+			new /datum/forced_movement(C, get_ranged_target_turf(C, olddir, 1), 1, FALSE) //spinning would be bad for ice, fucks up the next dir
 		return TRUE
 
 /turf/open/proc/MakeSlippery(wet_setting = TURF_WET_WATER, min_wet_time = 0, wet_time_to_add = 0, max_wet_time = MAXIMUM_WET_TIME, permanent)
@@ -264,7 +316,7 @@
 	. = ..()
 	var/gas_change = FALSE
 	var/list/cached_gases = air.gases
-	if(cached_gases[/datum/gas/oxygen] && cached_gases[/datum/gas/carbon_dioxide])
+	if(cached_gases[/datum/gas/oxygen] && cached_gases[/datum/gas/carbon_dioxide] && air.temperature <= PLUOXIUM_TEMP_CAP)
 		gas_change = TRUE
 		var/pulse_strength = min(strength, cached_gases[/datum/gas/oxygen][MOLES] * 1000, cached_gases[/datum/gas/carbon_dioxide][MOLES] * 2000)
 		cached_gases[/datum/gas/carbon_dioxide][MOLES] -= pulse_strength / 2000

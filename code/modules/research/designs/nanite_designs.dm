@@ -25,20 +25,6 @@
 	program_type = /datum/nanite_program/viral
 	category = list("Utility Nanites")
 
-/datum/design/nanites/research
-	name = "Distributed Computing"
-	desc = "The nanites aid the research servers by performing a portion of its calculations, increasing research point generation."
-	id = "research_nanites"
-	program_type = /datum/nanite_program/research
-	category = list("Utility Nanites")
-
-/datum/design/nanites/researchplus
-	name = "Neural Network"
-	desc = "The nanites link the host's brains together forming a neural research network, that becomes more efficient with the amount of total hosts. Can be overloaded to increase research output."
-	id = "researchplus_nanites"
-	program_type = /datum/nanite_program/researchplus
-	category = list("Utility Nanites")
-
 /datum/design/nanites/monitoring
 	name = "Monitoring"
 	desc = "The nanites monitor the host's vitals and location, sending them to the suit sensor network."
@@ -128,7 +114,7 @@
 /datum/design/nanites/mitosis
 	name = "Mitosis"
 	desc = "The nanites gain the ability to self-replicate, using bluespace to power the process, instead of drawing from a template. This rapidly speeds up the replication rate,\
-			but it causes occasional software errors due to faulty copies. Not compatible with cloud sync."
+			but it causes occasional software errors due to faulty copies."
 	id = "mitosis_nanites"
 	program_type = /datum/nanite_program/mitosis
 	category = list("Utility Nanites")

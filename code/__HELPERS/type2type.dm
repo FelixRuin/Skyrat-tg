@@ -1,11 +1,11 @@
 /*
  * Holds procs designed to change one type of value, into another.
  * Contains:
- *			file2list
- *			angle2dir
- *			angle2text
- *			worldtime2text
- *			text2dir_extended & dir2text_short
+ * file2list
+ * angle2dir
+ * angle2text
+ * worldtime2text
+ * text2dir_extended & dir2text_short
  */
 
 
@@ -309,6 +309,14 @@ GLOBAL_LIST_INIT(modulo_angle_to_dir, list(NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,
 		if(ITEM_SLOT_LEGCUFFED)
 			return pick(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
 
+		//SKYRAT EDIT ADDITION BEGIN - ERP_SLOT_SYSTEM
+		if(ITEM_SLOT_PENIS, ITEM_SLOT_VAGINA, ITEM_SLOT_ANUS)
+			return BODY_ZONE_PRECISE_GROIN
+
+		if(ITEM_SLOT_NIPPLES)
+			return BODY_ZONE_CHEST
+		//SKYRAT EDIT ADDITION END
+
 //adapted from http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
 /proc/heat2colour(temp)
 	return rgb(heat2colour_r(temp), heat2colour_g(temp), heat2colour_b(temp))
@@ -341,7 +349,7 @@ GLOBAL_LIST_INIT(modulo_angle_to_dir, list(NORTH,NORTHEAST,EAST,SOUTHEAST,SOUTH,
 			. = max(0, min(255, 138.5177312231 * log(temp - 10) - 305.0447927307))
 
 
-/proc/color2hex(color)	//web colors
+/proc/color2hex(color) //web colors
 	if(!color)
 		return "#000000"
 

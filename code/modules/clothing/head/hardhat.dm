@@ -34,10 +34,11 @@
 		turn_on(user)
 	else
 		turn_off(user)
-	update_icon()
+	update_appearance()
 
 /obj/item/clothing/head/hardhat/update_icon_state()
 	icon_state = inhand_icon_state = "hardhat[on]_[hat_type]"
+	return ..()
 
 /obj/item/clothing/head/hardhat/proc/turn_on(mob/user)
 	set_light_on(TRUE)
@@ -118,10 +119,11 @@
 	visor_vars_to_toggle = VISOR_FLASHPROTECT | VISOR_TINT
 	visor_flags_inv = HIDEEYES | HIDEFACE | HIDESNOUT
 	visor_flags_cover = HEADCOVERSEYES | HEADCOVERSMOUTH | PEPPERPROOF
+	var/visor_sprite_path	//SKYRAT EDIT --- Lets the visor not smush the snout
 
 /obj/item/clothing/head/hardhat/weldhat/Initialize()
 	. = ..()
-	update_icon()
+	update_appearance()
 
 /obj/item/clothing/head/hardhat/weldhat/attack_self(mob/living/user)
 	toggle_helmet_light(user)
@@ -133,14 +135,21 @@
 /obj/item/clothing/head/hardhat/weldhat/proc/toggle_welding_screen(mob/living/user)
 	if(weldingvisortoggle(user))
 		playsound(src, 'sound/mecha/mechmove03.ogg', 50, TRUE) //Visors don't just come from nothing
-	update_icon()
+	var/mob/living/carbon/carbon_user = user	//SKYRAT EDIT --- Lets the visor not smush the snout
+	if(carbon_user.dna.species.mutant_bodyparts["snout"])
+		visor_sprite_path = 'modular_skyrat/master_files/icons/mob/clothing/head_muzzled.dmi'
+	else
+		visor_sprite_path = 'icons/mob/clothing/head.dmi'	//END SKYRAT EDIT
+	update_appearance()
 
-/obj/item/clothing/head/hardhat/weldhat/worn_overlays(isinhands)
+/obj/item/clothing/head/hardhat/weldhat/worn_overlays(mutable_appearance/standing, isinhands)
 	. = ..()
-	if(!isinhands)
-		. += mutable_appearance('icons/mob/clothing/head.dmi', "weldhelmet")
-		if(!up)
-			. += mutable_appearance('icons/mob/clothing/head.dmi', "weldvisor")
+	if(isinhands)
+		return
+
+	. += mutable_appearance(visor_sprite_path, "weldhelmet")	//Changed first variable from 'icons/mob/clothing/head.dmi'
+	if(!up)
+		. += mutable_appearance(visor_sprite_path, "weldvisor")	//Changed first variable from 'icons/mob/clothing/head.dmi'
 
 /obj/item/clothing/head/hardhat/weldhat/update_overlays()
 	. = ..()

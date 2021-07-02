@@ -20,17 +20,18 @@
  * * grant any actions the mob has to the client
  * * calls [auto_deadmin_on_login](mob.html#proc/auto_deadmin_on_login)
  * * send signal COMSIG_MOB_CLIENT_LOGIN
+ * * attaches the ash listener element so clients can hear weather
  * client can be deleted mid-execution of this proc, chiefly on parent calls, with lag
  */
 /mob/Login()
 	if(!client)
 		return FALSE
 	add_to_player_list()
-	lastKnownIP	= client.address
-	computer_id	= client.computer_id
+	lastKnownIP = client.address
+	computer_id = client.computer_id
 	log_access("Mob Login: [key_name(src)] was assigned to a [type]")
 	world.update_status()
-	client.screen = list()				//remove hud items just in case
+	client.screen = list() //remove hud items just in case
 	client.images = list()
 	client.set_right_click_menu_mode(shift_to_open_context_menu)
 
@@ -93,6 +94,8 @@
 	log_message("Client [key_name(src)] has taken ownership of mob [src]([src.type])", LOG_OWNERSHIP)
 	SEND_SIGNAL(src, COMSIG_MOB_CLIENT_LOGIN, client)
 	client.init_verbs()
+
+	AddElement(/datum/element/weather_listener, /datum/weather/ash_storm, ZTRAIT_ASHSTORM, GLOB.ash_storm_sounds)
 
 	return TRUE
 

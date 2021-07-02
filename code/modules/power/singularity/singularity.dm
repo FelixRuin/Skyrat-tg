@@ -2,14 +2,17 @@
 /obj/singularity
 	name = "gravitational singularity"
 	desc = "A gravitational singularity."
-	icon = 'icons/obj/singularity.dmi'
+	icon = 'modular_skyrat/modules/aesthetics/singularity/singularity_s1.dmi' //SKYRAT EDIT CHANGE
 	icon_state = "singularity_s1"
 	anchored = TRUE
 	density = TRUE
 	move_resist = INFINITY
-	layer = MASSIVE_OBJ_LAYER
+	plane = MASSIVE_OBJ_PLANE
+	plane = ABOVE_LIGHTING_PLANE
 	light_range = 6
 	appearance_flags = LONG_GLIDE
+
+	invisibility = INVISIBILITY_MAXIMUM //SKYRAT EDIT ADDITION
 
 	/// The singularity component itself.
 	/// A weak ref in case an admin removes the component to preserve the functionality.
@@ -35,12 +38,16 @@
 
 /obj/singularity/Initialize(mapload, starting_energy = 50)
 	. = ..()
+	//SKYRAT EDIT ADDITION BEGIN
+	new /obj/effect/singularity_creation(loc)
+
+	addtimer(CALLBACK(src, .proc/make_visible), 62)
 
 	energy = starting_energy
+	//SKYRAT EDIT END
 
 	START_PROCESSING(SSobj, src)
 	AddElement(/datum/element/point_of_interest)
-	GLOB.singularities |= src
 
 	var/datum/component/singularity/new_component = AddComponent(
 		/datum/component/singularity, \
@@ -61,7 +68,6 @@
 
 /obj/singularity/Destroy()
 	STOP_PROCESSING(SSobj, src)
-	GLOB.singularities.Remove(src)
 	return ..()
 
 /obj/singularity/attack_tk(mob/user)
@@ -70,9 +76,9 @@
 	. = COMPONENT_CANCEL_ATTACK_CHAIN
 	var/mob/living/carbon/jedi = user
 	jedi.visible_message(
-		"<span class='danger'>[jedi]'s head begins to collapse in on itself!</span>",
-		"<span class='userdanger'>Your head feels like it's collapsing in on itself! This was really not a good idea!</span>",
-		"<span class='hear'>You hear something crack and explode in gore.</span>"
+		span_danger("[jedi]'s head begins to collapse in on itself!"),
+		span_userdanger("Your head feels like it's collapsing in on itself! This was really not a good idea!"),
+		span_hear("You hear something crack and explode in gore.")
 		)
 	jedi.Stun(3 SECONDS)
 	new /obj/effect/gibspawner/generic(get_turf(jedi), jedi)
@@ -120,20 +126,21 @@
 
 /obj/singularity/ex_act(severity, target)
 	switch(severity)
-		if(1)
+		if(EXPLODE_DEVASTATE)
 			if(current_size <= STAGE_TWO)
 				investigate_log("has been destroyed by a heavy explosion.", INVESTIGATE_SINGULO)
 				qdel(src)
 				return
-			else
-				energy -= round(((energy+1)/2),1)
-		if(2)
-			energy -= round(((energy+1)/3),1)
-		if(3)
-			energy -= round(((energy+1)/4),1)
+
+			energy -= round(((energy + 1) / 2), 1)
+		if(EXPLODE_HEAVY)
+			energy -= round(((energy + 1) / 3), 1)
+		if(EXPLODE_LIGHT)
+			energy -= round(((energy + 1) / 4), 1)
 
 /obj/singularity/process(delta_time)
 	if(current_size >= STAGE_TWO)
+		radiation_pulse(src, min(5000, (energy*4.5)+1000), RAD_DISTANCE_COEFFICIENT*0.5)
 		if(prob(event_chance))//Chance for it to run a special event TODO:Come up with one or two more that fit
 			event()
 	dissipate(delta_time)
@@ -165,7 +172,7 @@
 	switch(temp_allowed_size)
 		if(STAGE_ONE)
 			current_size = STAGE_ONE
-			icon = 'icons/obj/singularity.dmi'
+			icon = 'modular_skyrat/modules/aesthetics/singularity/singularity_s1.dmi' //SKYRAT EDIT CHANGE
 			icon_state = "singularity_s1"
 			pixel_x = 0
 			pixel_y = 0
@@ -177,7 +184,7 @@
 		if(STAGE_TWO)
 			if(check_cardinals_range(1, TRUE))
 				current_size = STAGE_TWO
-				icon = 'icons/effects/96x96.dmi'
+				icon = 'modular_skyrat/modules/aesthetics/singularity/singularity_s3.dmi' //SKYRAT EDIT CHANGE
 				icon_state = "singularity_s3"
 				pixel_x = -32
 				pixel_y = -32
@@ -189,7 +196,7 @@
 		if(STAGE_THREE)
 			if(check_cardinals_range(2, TRUE))
 				current_size = STAGE_THREE
-				icon = 'icons/effects/160x160.dmi'
+				icon = 'modular_skyrat/modules/aesthetics/singularity/singularity_s5.dmi' //SKYRAT EDIT CHANGE
 				icon_state = "singularity_s5"
 				pixel_x = -64
 				pixel_y = -64
@@ -201,7 +208,7 @@
 		if(STAGE_FOUR)
 			if(check_cardinals_range(3, TRUE))
 				current_size = STAGE_FOUR
-				icon = 'icons/effects/224x224.dmi'
+				icon = 'modular_skyrat/modules/aesthetics/singularity/singularity_s7.dmi' //SKYRAT EDIT CHANGE
 				icon_state = "singularity_s7"
 				pixel_x = -96
 				pixel_y = -96
@@ -212,7 +219,7 @@
 				dissipate_strength = 10
 		if(STAGE_FIVE)//this one also lacks a check for gens because it eats everything
 			current_size = STAGE_FIVE
-			icon = 'icons/effects/288x288.dmi'
+			icon = 'modular_skyrat/modules/aesthetics/singularity/singularity_s9.dmi' //SKYRAT EDIT CHANGE
 			icon_state = "singularity_s9"
 			pixel_x = -128
 			pixel_y = -128
@@ -279,13 +286,13 @@
 		set_light(10)
 
 /obj/singularity/proc/check_cardinals_range(steps, retry_with_move = FALSE)
-	. = length(GLOB.cardinals)			//Should be 4.
+	. = length(GLOB.cardinals) //Should be 4.
 	for(var/i in GLOB.cardinals)
-		. -= check_turfs_in(i, steps)	//-1 for each working direction
-	if(. && retry_with_move)			//If there's still a positive value it means it didn't pass. Retry with move if applicable
+		. -= check_turfs_in(i, steps) //-1 for each working direction
+	if(. && retry_with_move) //If there's still a positive value it means it didn't pass. Retry with move if applicable
 		for(var/i in GLOB.cardinals)
-			if(step(src, i))			//Move in each direction.
-				if(check_cardinals_range(steps, FALSE))		//New location passes, return true.
+			if(step(src, i)) //Move in each direction.
+				if(check_cardinals_range(steps, FALSE)) //New location passes, return true.
 					return TRUE
 	return !.
 
@@ -376,8 +383,8 @@
 
 /obj/singularity/proc/combust_mobs()
 	for(var/mob/living/carbon/C in urange(20, src, 1))
-		C.visible_message("<span class='warning'>[C]'s skin bursts into flame!</span>", \
-						  "<span class='userdanger'>You feel an inner fire as your skin bursts into flames!</span>")
+		C.visible_message(span_warning("[C]'s skin bursts into flame!"), \
+						  span_userdanger("You feel an inner fire as your skin bursts into flames!"))
 		C.adjust_fire_stacks(5)
 		C.IgniteMob()
 	return
@@ -394,12 +401,12 @@
 				if(istype(H.glasses, /obj/item/clothing/glasses/meson))
 					var/obj/item/clothing/glasses/meson/MS = H.glasses
 					if(MS.vision_flags == SEE_TURFS)
-						to_chat(H, "<span class='notice'>You look directly into the [src.name], good thing you had your protective eyewear on!</span>")
+						to_chat(H, span_notice("You look directly into the [src.name], good thing you had your protective eyewear on!"))
 						return
 
 		M.apply_effect(60, EFFECT_STUN)
-		M.visible_message("<span class='danger'>[M] stares blankly at the [src.name]!</span>", \
-						"<span class='userdanger'>You look directly into the [src.name] and feel weak.</span>")
+		M.visible_message(span_danger("[M] stares blankly at the [src.name]!"), \
+						span_userdanger("You look directly into the [src.name] and feel weak."))
 	return
 
 
@@ -409,7 +416,8 @@
 /obj/singularity/singularity_act()
 	var/gain = (energy/2)
 	var/dist = max((current_size - 2),1)
-	explosion(src.loc,(dist),(dist*2),(dist*4))
+	investigate_log("has been destroyed by another singularity.", INVESTIGATE_SINGULO)
+	explosion(src, devastation_range = (dist), heavy_impact_range = (dist*2), light_impact_range = (dist*4))
 	qdel(src)
 	return gain
 

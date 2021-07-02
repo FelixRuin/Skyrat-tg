@@ -15,6 +15,12 @@
 	tac_reloads = FALSE
 	var/spin_delay = 10
 	var/recent_spin = 0
+	var/last_fire = 0
+
+/obj/item/gun/ballistic/revolver/process_fire(atom/target, mob/living/user, message, params, zone_override, bonus_spread)
+	..()
+	last_fire = world.time
+
 
 /obj/item/gun/ballistic/revolver/chamber_round(keep_bullet, spin_cylinder = TRUE, replace_new_round)
 	if(!magazine) //if it mag was qdel'd somehow.
@@ -48,7 +54,7 @@
 
 	if(do_spin())
 		playsound(usr, "revolver_spin", 30, FALSE)
-		usr.visible_message("<span class='notice'>[usr] spins [src]'s chamber.</span>", "<span class='notice'>You spin [src]'s chamber.</span>")
+		usr.visible_message(span_notice("[usr] spins [src]'s chamber."), span_notice("You spin [src]'s chamber."))
 	else
 		verbs -= /obj/item/gun/ballistic/revolver/verb/spin
 
@@ -74,7 +80,11 @@
 	if (current_skin)
 		. += "It can be spun with <b>alt+click</b>"
 
-/obj/item/gun/ballistic/revolver/detective //ICON OVERRIDEN IN SKYRAT AESTHETICS - SEE MODULE
+/obj/item/gun/ballistic/revolver/ignition_effect(atom/A, mob/user)
+	if(last_fire && last_fire + 15 SECONDS > world.time)
+		. = span_notice("[user] touches the end of [src] to \the [A], using the residual heat to ignite it in a puff of smoke. What a badass.")
+
+/obj/item/gun/ballistic/revolver/detective
 	name = "\improper Colt Detective Special"
 	desc = "A classic, if not outdated, law enforcement firearm. Uses .38 Special rounds. \nSome spread rumors that if you loosen the barrel with a wrench, you can \"improve\" it."
 	fire_sound = 'sound/weapons/gun/revolver/shot.ogg'
@@ -105,7 +115,7 @@
 	var/skip_357_missfire_check = FALSE
 
 /obj/item/gun/ballistic/revolver/detective/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
-	if(magazine && magazine.caliber != initial(magazine.caliber) && chambered.BB && !skip_357_missfire_check)
+	if(magazine && magazine.caliber != initial(magazine.caliber) && chambered.loaded_projectile && !skip_357_missfire_check)
 		if(prob(70 - (magazine.ammo_count() * 10)))	//minimum probability of 10, maximum of 60
 			to_chat(user, "<span class='userdanger'>[src] misfires!</span>")
 			if(user.get_item_for_held_index(1) == src)
@@ -126,7 +136,7 @@
 		return TRUE
 	if(magazine.ammo_count()) //If it has any ammo inside....
 		user.visible_message("<span class='danger'>[src]'s hammer drops while you're handling it!</span>") //...you learn an important lesson about firearms safety.
-		var/drop_the_gun_it_actually_fired = chambered.BB ? TRUE : FALSE //Is a live round chambered?
+		var/drop_the_gun_it_actually_fired = chambered.loaded_projectile ? TRUE : FALSE //Is a live round chambered?
 		skip_357_missfire_check = TRUE //We set this true, then back to false after process_fire, to reduce redundacy of a round "misfiring" when it's already misfiring from wrench_act
 		process_fire(user, user, FALSE)
 		skip_357_missfire_check = FALSE
@@ -188,8 +198,8 @@
 	..()
 	if(get_ammo() > 0)
 		spin()
-	update_icon()
-	A.update_icon()
+	update_appearance()
+	A.update_appearance()
 	return
 
 /obj/item/gun/ballistic/revolver/russian/attack_self(mob/user)
@@ -212,13 +222,13 @@
 			return
 	if(target != user)
 		if(ismob(target))
-			to_chat(user, "<span class='warning'>A mechanism prevents you from shooting anyone but yourself!</span>")
+			to_chat(user, span_warning("A mechanism prevents you from shooting anyone but yourself!"))
 		return
 
 	if(ishuman(user))
 		var/mob/living/carbon/human/H = user
 		if(!spun)
-			to_chat(user, "<span class='warning'>You need to spin \the [src]'s chamber first!</span>")
+			to_chat(user, span_warning("You need to spin \the [src]'s chamber first!"))
 			return
 
 		spun = FALSE
@@ -232,21 +242,21 @@
 				if(zone == BODY_ZONE_HEAD || zone == BODY_ZONE_PRECISE_EYES || zone == BODY_ZONE_PRECISE_MOUTH)
 					shoot_self(user, affecting)
 				else
-					user.visible_message("<span class='danger'>[user.name] cowardly fires [src] at [user.p_their()] [affecting.name]!</span>", "<span class='userdanger'>You cowardly fire [src] at your [affecting.name]!</span>", "<span class='hear'>You hear a gunshot!</span>")
+					user.visible_message(span_danger("[user.name] cowardly fires [src] at [user.p_their()] [affecting.name]!"), span_userdanger("You cowardly fire [src] at your [affecting.name]!"), span_hear("You hear a gunshot!"))
 				chambered = null
 				return
 
-		user.visible_message("<span class='danger'>*click*</span>")
+		user.visible_message(span_danger("*click*"))
 		playsound(src, dry_fire_sound, 30, TRUE)
 
 /obj/item/gun/ballistic/revolver/russian/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
 	add_fingerprint(user)
 	playsound(src, dry_fire_sound, 30, TRUE)
-	user.visible_message("<span class='danger'>[user.name] tries to fire \the [src] at the same time, but only succeeds at looking like an idiot.</span>", "<span class='danger'>\The [src]'s anti-combat mechanism prevents you from firing it at the same time!</span>")
+	user.visible_message(span_danger("[user.name] tries to fire \the [src] at the same time, but only succeeds at looking like an idiot."), span_danger("\The [src]'s anti-combat mechanism prevents you from firing it at the same time!"))
 
 /obj/item/gun/ballistic/revolver/russian/proc/shoot_self(mob/living/carbon/human/user, affecting = BODY_ZONE_HEAD)
 	user.apply_damage(300, BRUTE, affecting)
-	user.visible_message("<span class='danger'>[user.name] fires [src] at [user.p_their()] head!</span>", "<span class='userdanger'>You fire [src] at your head!</span>", "<span class='hear'>You hear a gunshot!</span>")
+	user.visible_message(span_danger("[user.name] fires [src] at [user.p_their()] head!"), span_userdanger("You fire [src] at your head!"), span_hear("You hear a gunshot!"))
 
 /obj/item/gun/ballistic/revolver/russian/soul
 	name = "cursed Russian revolver"
@@ -258,7 +268,7 @@
 	if(!SS.transfer_soul("FORCE", user)) //Something went wrong
 		qdel(SS)
 		return
-	user.visible_message("<span class='danger'>[user.name]'s soul is captured by \the [src]!</span>", "<span class='userdanger'>You've lost the gamble! Your soul is forfeit!</span>")
+	user.visible_message(span_danger("[user.name]'s soul is captured by \the [src]!"), span_userdanger("You've lost the gamble! Your soul is forfeit!"))
 
 /obj/item/gun/ballistic/revolver/reverse //Fires directly at its user... unless the user is a clown, of course.
 	clumsy_check = FALSE
@@ -267,7 +277,7 @@
 	if((HAS_TRAIT(user, TRAIT_CLUMSY)) || (user.mind && user.mind.assigned_role == "Clown"))
 		return ..()
 	if(process_fire(user, user, FALSE, null, BODY_ZONE_HEAD))
-		user.visible_message("<span class='warning'>[user] somehow manages to shoot [user.p_them()]self in the face!</span>", "<span class='userdanger'>You somehow shoot yourself in the face! How the hell?!</span>")
+		user.visible_message(span_warning("[user] somehow manages to shoot [user.p_them()]self in the face!"), span_userdanger("You somehow shoot yourself in the face! How the hell?!"))
 		user.emote("scream")
 		user.drop_all_held_items()
 		user.Paralyze(80)

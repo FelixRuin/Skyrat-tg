@@ -11,7 +11,6 @@
 	can_buckle = TRUE
 	buckle_lying = 0
 	mob_biotypes = MOB_ORGANIC|MOB_HUMANOID
-	blocks_emissive = EMISSIVE_BLOCK_UNIQUE
 	can_be_shoved_into = TRUE
 
 	maxHealth = MAX_HUMAN_LIFE //SKYRAT EDIT ADDITION
@@ -21,6 +20,11 @@
 	var/hair_color = "000"
 	var/hairstyle = "Bald"
 
+	///Colour used for the hair gradient.
+	var/grad_color = "000"
+	///Style used for the hair gradient.
+	var/grad_style
+
 	//Facial hair colour and style
 	var/facial_hair_color = "000"
 	var/facial_hairstyle = "Shaved"
@@ -28,19 +32,23 @@
 	//Eye colour
 	var/eye_color = "000"
 
-	var/skin_tone = "caucasian1"	//Skin tone
+	var/skin_tone = "caucasian1" //Skin tone
 
-	var/lip_style = null	//no lipstick by default- arguably misleading, as it could be used for general makeup
+	var/lip_style = null //no lipstick by default- arguably misleading, as it could be used for general makeup
 	var/lip_color = "white"
 
-	var/age = 30		//Player's age
+	var/age = 30 //Player's age
 
-	var/underwear = "Nude"	//Which underwear the player wants
+	//consider updating /mob/living/carbon/human/copy_clothing_prefs() if adding more of these
+	var/underwear = "Nude" //Which underwear the player wants
 	var/underwear_color = "000"
 	var/undershirt = "Nude" //Which undershirt the player wants
 	var/socks = "Nude" //Which socks the player wants
-	var/backpack = DBACKPACK		//Which backpack type the player has chosen.
-	var/jumpsuit_style = PREF_SUIT		//suit/skirt
+	var/backpack = DBACKPACK //Which backpack type the player has chosen.
+	var/jumpsuit_style = PREF_SUIT //suit/skirt
+
+	var/datum/scream_type/selected_scream //SKRYAT EDIT ADDITION
+	var/datum/laugh_type/selected_laugh //SKYRAT EDIT ADDITION
 
 	//Equipment slots
 	var/obj/item/clothing/wear_suit = null
@@ -77,3 +85,8 @@
 
 	///Exposure to damaging heat levels increases stacks, stacks clean over time when temperatures are lower. Stack is consumed to add a wound.
 	var/heat_exposure_stacks = 0
+
+	///human specific screwyhuds from hallucinations (define key (bodypart) to int value (severity)) - see /datum/hallucination/fake_health_doll
+	var/hal_screwydoll
+	/// When an braindead player has their equipment fiddled with, we log that info here for when they come back so they know who took their ID while they were DC'd for 30 seconds
+	var/list/afk_thefts

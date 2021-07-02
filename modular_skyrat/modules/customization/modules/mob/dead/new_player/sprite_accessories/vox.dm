@@ -1,6 +1,6 @@
 //The snouts
 /datum/sprite_accessory/snouts/vox
-	icon = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/vox_snouts.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/sprite_accessory/vox_snouts.dmi'
 	default_color = DEFAULT_SECONDARY
 	name = "Vox Snout"
 	icon_state = "vox"
@@ -8,7 +8,7 @@
 
 //The hairstyles
 /datum/sprite_accessory/hair/vox
-	icon = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/vox_hair.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/sprite_accessory/vox_hair.dmi'
 	recommended_species = list("vox")
 
 /datum/sprite_accessory/hair/vox/vox_afro
@@ -67,9 +67,29 @@
 	name = "Vox Yasu"
 	icon_state = "hair_vox_yasu"
 
+/datum/sprite_accessory/hair/vox/surf
+	name = "Vox Surf"
+	icon_state = "vox_surf"
+
+/datum/sprite_accessory/hair/vox/cropped
+	name = "Vox Cropped"
+	icon_state = "vox_cropped"
+
+/datum/sprite_accessory/hair/vox/rows
+	name = "Vox Rows"
+	icon_state = "vox_rows"
+
+/datum/sprite_accessory/hair/vox/ponytail
+	name = "Vox Ponytail"
+	icon_state = "vox_pony"
+
+/datum/sprite_accessory/hair/vox/mange
+	name = "Vox Mange"
+	icon_state = "vox_mange"
+
 //The facial hairstyles
 /datum/sprite_accessory/facial_hair/vox
-	icon = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/vox_facial_hair.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/sprite_accessory/vox_facial_hair.dmi'
 	recommended_species = list("vox")
 
 /datum/sprite_accessory/facial_hair/vox/vox_beard
@@ -90,14 +110,14 @@
 
 //The tail
 /datum/sprite_accessory/tails/vox
-	icon = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/vox_tails.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/sprite_accessory/vox_tails.dmi'
 	name = "Vox Tail"
 	icon_state = "vox"
 	recommended_species = list("vox")
 
 //The tail markings
 /datum/sprite_accessory/spines/vox
-	icon = 'modular_skyrat/modules/customization/icons/mob/sprite_accessory/vox_spines.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/sprite_accessory/vox_spines.dmi'
 	default_color = DEFAULT_TERTIARY
 	recommended_species = list("vox")
 	relevent_layers = list(BODY_BEHIND_LAYER, BODY_FRONT_LAYER)

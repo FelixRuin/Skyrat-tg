@@ -33,7 +33,7 @@
 
 /datum/nanite_program/monitoring/enable_passive_effect()
 	. = ..()
-	ADD_TRAIT(host_mob, TRAIT_NANITE_MONITORING, "nanites") //Shows up in diagnostic and medical HUDs as a small blinking icon
+	ADD_TRAIT(host_mob, TRAIT_NANITE_MONITORING, NANITES_TRAIT) //Shows up in diagnostic and medical HUDs as a small blinking icon
 	if(ishuman(host_mob))
 		GLOB.nanite_sensors_list |= host_mob
 	host_mob.hud_set_nanite_indicator()
@@ -89,7 +89,7 @@
 /datum/nanite_program/nanite_debugging
 	name = "Nanite Debugging"
 	desc = "Enables various high-cost diagnostics in the nanites, making them able to communicate their program list to portable scanners. \
-	Doing so uses some power, slightly decreasing their replication speed."
+			Doing so uses some power, slightly decreasing their replication speed."
 	rogue_types = list(/datum/nanite_program/toxic)
 	use_rate = 0.1
 
@@ -153,53 +153,6 @@
 
 /datum/nanite_program/metabolic_synthesis/active_effect()
 	host_mob.adjust_nutrition(-0.5)
-
-/datum/nanite_program/research
-	name = "Distributed Computing"
-	desc = "The nanites aid the research servers by performing a portion of its calculations, increasing research point generation."
-	use_rate = 0.2
-	rogue_types = list(/datum/nanite_program/toxic)
-
-/datum/nanite_program/research/active_effect()
-	if(!iscarbon(host_mob))
-		return
-	var/points = 1
-	if(!host_mob.client) //less brainpower
-		points *= 0.25
-	SSresearch.science_tech.add_point_list(list(TECHWEB_POINT_TYPE_GENERIC = points))
-
-/datum/nanite_program/researchplus
-	name = "Neural Network"
-	desc = "The nanites link the host's brains together forming a neural research network, that becomes more efficient with the amount of total hosts."
-	use_rate = 0.3
-	rogue_types = list(/datum/nanite_program/brain_decay)
-
-/datum/nanite_program/researchplus/enable_passive_effect()
-	. = ..()
-	if(!iscarbon(host_mob))
-		return
-	if(host_mob.client)
-		SSnanites.neural_network_count++
-	else
-		SSnanites.neural_network_count += 0.25
-
-/datum/nanite_program/researchplus/disable_passive_effect()
-	. = ..()
-	if(!iscarbon(host_mob))
-		return
-	if(host_mob.client)
-		SSnanites.neural_network_count--
-	else
-		SSnanites.neural_network_count -= 0.25
-
-/datum/nanite_program/researchplus/active_effect()
-	if(!iscarbon(host_mob))
-		return
-	var/mob/living/carbon/C = host_mob
-	var/points = round(SSnanites.neural_network_count / 12, 0.1)
-	if(!C.client) //less brainpower
-		points *= 0.25
-	SSresearch.science_tech.add_point_list(list(TECHWEB_POINT_TYPE_GENERIC = points))
 
 /datum/nanite_program/access
 	name = "Subdermal ID"
@@ -284,12 +237,13 @@
 		SEND_SIGNAL(infectee, COMSIG_NANITE_SYNC, nanites)
 		SEND_SIGNAL(infectee, COMSIG_NANITE_SET_CLOUD, nanites.cloud_id)
 		infectee.investigate_log("was infected by a nanite cluster with cloud ID [nanites.cloud_id] by [key_name(host_mob)] at [AREACOORD(infectee)].", INVESTIGATE_NANITES)
-		to_chat(infectee, "<span class='warning'>You feel a tiny prick.</span>")
+		to_chat(infectee, span_warning("You feel a tiny prick."))
 
 /datum/nanite_program/mitosis
 	name = "Mitosis"
-	desc = "The nanites gain the ability to self-replicate, using bluespace to power the process. Becomes more effective the more nanites are already in the host.\
-			The replication has also a chance to corrupt the nanite programming due to copy faults - cloud sync is highly recommended."
+	desc = "The nanites gain the ability to self-replicate, using bluespace to power the process. Becomes more effective the more nanites are already in the host; \
+			For every 50 nanite volume in the host, the production rate is increased by 0.5. The replication has also a chance to corrupt the nanite programming \
+			due to copy faults - constant cloud sync is highly recommended."
 	use_rate = 0
 	rogue_types = list(/datum/nanite_program/toxic)
 
@@ -331,12 +285,12 @@
 
 /datum/nanite_program/dermal_button/on_mob_remove()
 	. = ..()
-	qdel(button)
+	QDEL_NULL(button)
 
 /datum/nanite_program/dermal_button/proc/press()
 	if(activated)
-		host_mob.visible_message("<span class='notice'>[host_mob] presses a button on [host_mob.p_their()] forearm.</span>",
-								"<span class='notice'>You press the nanite button on your forearm.</span>", null, 2)
+		host_mob.visible_message(span_notice("[host_mob] presses a button on [host_mob.p_their()] forearm."),
+								span_notice("You press the nanite button on your forearm."), null, 2)
 		var/datum/nanite_extra_setting/sent_code = extra_settings[NES_SENT_CODE]
 		SEND_SIGNAL(host_mob, COMSIG_NANITE_SIGNAL, sent_code.get_value(), "a [name] program")
 

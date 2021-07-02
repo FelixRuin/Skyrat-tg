@@ -2,17 +2,33 @@
 	name = "Akula"
 	id = "akula"
 	default_color = "4B4B4B"
-	species_traits = list(MUTCOLORS,EYECOLOR,LIPS,HAS_FLESH,HAS_BONE,HAIR)
-	inherent_traits = list(TRAIT_ADVANCEDTOOLUSER)
+	species_traits = list(
+		MUTCOLORS,
+		EYECOLOR,
+		LIPS,
+		HAS_FLESH,
+		HAS_BONE,
+		HAIR
+	)
+	inherent_traits = list(
+		TRAIT_ADVANCEDTOOLUSER,
+		TRAIT_CAN_STRIP
+	)
 	inherent_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	mutant_bodyparts = list()
-	default_mutant_bodyparts = list("tail" = ACC_RANDOM, "snout" = ACC_RANDOM, "ears" = ACC_RANDOM, "legs" = "Normal Legs")
+	default_mutant_bodyparts = list(
+		"tail" = ACC_RANDOM,
+		"snout" = ACC_RANDOM,
+		"ears" = ACC_RANDOM,
+		"legs" = "Normal Legs"
+	)
 	attack_verb = "slash"
 	attack_sound = 'sound/weapons/slash.ogg'
 	miss_sound = 'sound/weapons/slashmiss.ogg'
+	payday_modifier = 0.75
 	liked_food = GROSS | MEAT | FRIED
 	changesource_flags = MIRROR_BADMIN | WABBAJACK | MIRROR_MAGIC | MIRROR_PRIDE | ERT_SPAWN | RACE_SWAP | SLIME_EXTRACT
-	limbs_icon = 'modular_skyrat/modules/customization/icons/mob/species/akula_parts_greyscale.dmi'
+	limbs_icon = 'modular_skyrat/master_files/icons/mob/species/akula_parts_greyscale.dmi'
 
 /datum/species/akula/get_random_features()
 	var/list/returned = MANDATORY_FEATURE_LIST

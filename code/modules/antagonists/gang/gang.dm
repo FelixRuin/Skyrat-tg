@@ -155,9 +155,9 @@
 	var/list/report = list()
 	report += "<span class='header'>[name]:</span>"
 	if(!members.len)
-		report += "<span class='redtext'>The family was wiped out!</span>"
+		report += span_redtext("The family was wiped out!")
 	else if(my_gang_datum.check_gang_objective())
-		report += "<span class='greentext'>The family completed their objective!</span>"
+		report += span_greentext("The family completed their objective!")
 	else
 		report += "<span class='redtext big'>The family failed their objective!</span>"
 	report += "Objective: [my_gang_datum.gang_objective]"
@@ -411,7 +411,7 @@
 	free_clothes = list(/obj/item/clothing/mask/bandana/gold,
 						/obj/item/clothing/under/color/yellow,
 						/obj/item/toy/crayon/spraycan)
-	gang_objective = "Orders from up high. We need to up our drug operation. Ensure that at least 25% of the station is addicted to meth."
+	gang_objective = "Orders from up high. We need to up our drug operation. Ensure that at least 25% of the station is addicted to stimulants."
 	antag_hud_name = "Vagos"
 
 /datum/antagonist/gang/vagos/check_gang_objective()
@@ -423,9 +423,8 @@
 		if(ishuman(M))
 			var/mob/living/carbon/human/H = M
 			people_on_station++
-			for(var/R in H.reagents.addiction_list)
-				if(istype(R, /datum/reagent/drug/methamphetamine))
-					people_on_crack++
+			if(H.mind.active_addictions[/datum/addiction/stimulants])
+				people_on_crack++
 	if(0.25*people_on_station > people_on_crack)
 		return FALSE
 	return TRUE

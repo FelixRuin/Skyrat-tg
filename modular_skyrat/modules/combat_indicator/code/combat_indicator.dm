@@ -11,9 +11,13 @@ GLOBAL_VAR_INIT(combat_indicator_overlay, GenerateCombatOverlay())
 	var/nextcombatpopup = 0
 
 /mob/living/proc/combat_indicator_unconscious_signal()
+	SIGNAL_HANDLER
 	set_combat_indicator(FALSE)
 
 /mob/living/proc/set_combat_indicator(state)
+	if(!CONFIG_GET(flag/combat_indicator))
+		return
+
 	if(stat == DEAD)
 		combat_indicator = FALSE
 
@@ -27,7 +31,7 @@ GLOBAL_VAR_INIT(combat_indicator_overlay, GenerateCombatOverlay())
 			nextcombatpopup = world.time + COMBAT_NOTICE_COOLDOWN
 			playsound(src, 'sound/machines/chime.ogg', 10, ignore_walls = FALSE)
 			flick_emote_popup_on_mob("combat", 20)
-			visible_message("<span class='boldwarning'>[src] gets ready for combat!</span>")
+			visible_message("<span class='warning'><b>[src] gets ready for combat!</b></span>")
 		add_overlay(GLOB.combat_indicator_overlay)
 		combat_indicator = TRUE
 		src.log_message("<font color='red'>has turned ON the combat indicator!</font>", INDIVIDUAL_ATTACK_LOG)
@@ -58,3 +62,5 @@ GLOBAL_VAR_INIT(combat_indicator_overlay, GenerateCombatOverlay())
 		return
 	var/mob/living/L = user.mob
 	L.user_toggle_combat_indicator()
+
+/datum/config_entry/flag/combat_indicator

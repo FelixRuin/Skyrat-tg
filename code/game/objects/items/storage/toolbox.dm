@@ -29,7 +29,7 @@
 			latches = "double_latch"
 			if(prob(1))
 				latches = "triple_latch"
-	update_icon()
+	update_appearance()
 
 /obj/item/storage/toolbox/update_overlays()
 	. = ..()
@@ -38,7 +38,7 @@
 
 
 /obj/item/storage/toolbox/suicide_act(mob/user)
-	user.visible_message("<span class='suicide'>[user] robusts [user.p_them()]self with [src]! It looks like [user.p_theyre()] trying to commit suicide!</span>")
+	user.visible_message(span_suicide("[user] robusts [user.p_them()]self with [src]! It looks like [user.p_theyre()] trying to commit suicide!"))
 	return (BRUTELOSS)
 
 /obj/item/storage/toolbox/emergency
@@ -150,12 +150,14 @@
 		new /obj/item/stack/cable_coil(src,MAXCOIL,pickedcolor)
 
 /obj/item/storage/toolbox/syndicate
-	name = "suspicious looking toolbox"
+	name = "tactical toolbox" //SKYRAT EDIT
 	icon_state = "syndicate"
 	inhand_icon_state = "toolbox_syndi"
 	force = 15
 	throwforce = 18
 	material_flags = NONE
+	special_desc_requirement = EXAMINE_CHECK_SYNDICATE // Skyrat edit
+	special_desc = "A toolbox manufactured by the Syndicate containing extra tactical tools. Made of more robust materials than the average toolbox." // Skyrat edit
 
 /obj/item/storage/toolbox/syndicate/ComponentInitialize()
 	. = ..()
@@ -262,7 +264,7 @@
 		/obj/item/clothing/head/helmet/infiltrator,
 		/obj/item/clothing/suit/armor/vest/infiltrator,
 		/obj/item/clothing/under/syndicate/bloodred,
-		/obj/item/clothing/gloves/color/latex/nitrile/infiltrator,
+		/obj/item/clothing/gloves/color/infiltrator,
 		/obj/item/clothing/mask/infiltrator,
 		/obj/item/clothing/shoes/combat/sneakboots,
 		/obj/item/gun/ballistic/automatic/pistol,
@@ -274,13 +276,13 @@
 	new /obj/item/clothing/head/helmet/infiltrator(src)
 	new /obj/item/clothing/suit/armor/vest/infiltrator(src)
 	new /obj/item/clothing/under/syndicate/bloodred(src)
-	new /obj/item/clothing/gloves/color/latex/nitrile/infiltrator(src)
+	new /obj/item/clothing/gloves/color/infiltrator(src)
 	new /obj/item/clothing/mask/infiltrator(src)
 	new /obj/item/clothing/shoes/combat/sneakboots(src)
 
 //floorbot assembly
 /obj/item/storage/toolbox/attackby(obj/item/stack/tile/iron/T, mob/user, params)
-	var/list/allowed_toolbox = list(/obj/item/storage/toolbox/emergency,	//which toolboxes can be made into floorbots
+	var/list/allowed_toolbox = list(/obj/item/storage/toolbox/emergency, //which toolboxes can be made into floorbots
 							/obj/item/storage/toolbox/electrical,
 							/obj/item/storage/toolbox/mechanical,
 							/obj/item/storage/toolbox/artistic,
@@ -292,7 +294,7 @@
 	if(!is_type_in_list(src, allowed_toolbox) && (type != /obj/item/storage/toolbox))
 		return
 	if(contents.len >= 1)
-		to_chat(user, "<span class='warning'>They won't fit in, as there is already stuff inside!</span>")
+		to_chat(user, span_warning("They won't fit in, as there is already stuff inside!"))
 		return
 	if(T.use(10))
 		var/obj/item/bot_assembly/floorbot/B = new
@@ -309,11 +311,11 @@
 			if(/obj/item/storage/toolbox/syndicate)
 				B.toolbox_color = "s"
 		user.put_in_hands(B)
-		B.update_icon()
-		to_chat(user, "<span class='notice'>You add the tiles into the empty [name]. They protrude from the top.</span>")
+		B.update_appearance()
+		to_chat(user, span_notice("You add the tiles into the empty [name]. They protrude from the top."))
 		qdel(src)
 	else
-		to_chat(user, "<span class='warning'>You need 10 floor tiles to start building a floorbot!</span>")
+		to_chat(user, span_warning("You need 10 floor tiles to start building a floorbot!"))
 		return
 
 

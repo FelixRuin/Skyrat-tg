@@ -26,13 +26,13 @@
 				playsound(active_apc, 'sound/machines/boltsdown.ogg', 25, FALSE)
 				playsound(active_apc, 'sound/machines/terminal_alert.ogg', 50, FALSE)
 			active_apc.locked = TRUE
-			active_apc.update_icon()
+			active_apc.update_appearance()
 			active_apc.remote_control = null
 			active_apc = null
 
 /obj/machinery/computer/apc_control/attack_ai(mob/user)
 	if(!isAdminGhostAI(user))
-		to_chat(user,"<span class='warning'>[src] does not support AI control.</span>") //You already have APC access, cheater!
+		to_chat(user,span_warning("[src] does not support AI control.")) //You already have APC access, cheater!
 		return
 	..()
 
@@ -132,7 +132,7 @@
 				playsound(active_apc, 'sound/machines/boltsdown.ogg', 25, FALSE)
 				playsound(active_apc, 'sound/machines/terminal_alert.ogg', 50, FALSE)
 				active_apc.locked = TRUE
-				active_apc.update_icon()
+				active_apc.update_appearance()
 				active_apc.remote_control = null
 				active_apc = null
 			APC.remote_control = src
@@ -145,7 +145,7 @@
 				playsound(APC, 'sound/machines/boltsup.ogg', 25, FALSE)
 				playsound(APC, 'sound/machines/terminal_alert.ogg', 50, FALSE)
 			APC.locked = FALSE
-			APC.update_icon()
+			APC.update_appearance()
 			active_apc = APC
 		if("check-logs")
 			log_activity("Checked Logs")
@@ -168,7 +168,7 @@
 					log_game("Warning: possible href exploit by [key_name(usr)] - attempted to set [type] on [target] to [value]")
 					return
 
-			target.update_icon()
+			target.update_appearance()
 			target.update()
 			var/setTo = ""
 			switch(target.vars[type])

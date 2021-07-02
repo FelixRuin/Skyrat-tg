@@ -11,15 +11,11 @@
 	throwforce = 15
 	w_class = WEIGHT_CLASS_TINY
 
-/obj/item/crucifix/Initialize()
-	. = ..()
-	AddComponent(/datum/component/anti_magic, TRUE, TRUE, FALSE, ITEM_SLOT_HANDS, null, FALSE) //Its a cross, so of course its Holy.
-
 /datum/crafting_recipe/cross
 	name = "Ornate Cross"
 	result = /obj/item/crucifix
 	reqs = list(/obj/item/stack/sheet/mineral/gold = 1,
 				/obj/item/stack/sheet/mineral/diamond = 1)
-	tools = list(/obj/item/chisel)
+	tool_behaviors = list(TOOL_SCREWDRIVER)
 	time = 20
 	category = CAT_MISC

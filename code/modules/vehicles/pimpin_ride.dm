@@ -6,10 +6,11 @@
 	key_type = /obj/item/key/janitor
 	var/obj/item/storage/bag/trash/mybag = null
 	var/floorbuffer = FALSE
+	movedelay = 1
 
 /obj/vehicle/ridden/janicart/Initialize(mapload)
 	. = ..()
-	update_icon()
+	update_appearance()
 	AddElement(/datum/element/ridable, /datum/component/riding/vehicle/janicart)
 
 	if(floorbuffer)
@@ -17,8 +18,7 @@
 
 /obj/vehicle/ridden/janicart/Destroy()
 	if(mybag)
-		qdel(mybag)
-		mybag = null
+		QDEL_NULL(mybag)
 	return ..()
 
 /obj/item/janiupgrade
@@ -35,22 +35,22 @@
 /obj/vehicle/ridden/janicart/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/storage/bag/trash))
 		if(mybag)
-			to_chat(user, "<span class='warning'>[src] already has a trashbag hooked!</span>")
+			to_chat(user, span_warning("[src] already has a trashbag hooked!"))
 			return
 		if(!user.transferItemToLoc(I, src))
 			return
-		to_chat(user, "<span class='notice'>You hook the trashbag onto [src].</span>")
+		to_chat(user, span_notice("You hook the trashbag onto [src]."))
 		mybag = I
-		update_icon()
+		update_appearance()
 	else if(istype(I, /obj/item/janiupgrade))
 		if(floorbuffer)
-			to_chat(user, "<span class='warning'>[src] already has a floor buffer!</span>")
+			to_chat(user, span_warning("[src] already has a floor buffer!"))
 			return
 		floorbuffer = TRUE
 		qdel(I)
-		to_chat(user, "<span class='notice'>You upgrade [src] with the floor buffer.</span>")
+		to_chat(user, span_notice("You upgrade [src] with the floor buffer."))
 		AddElement(/datum/element/cleaning)
-		update_icon()
+		update_appearance()
 	else if(mybag)
 		mybag.attackby(I, user)
 	else
@@ -63,15 +63,14 @@
 	if(floorbuffer)
 		. += "cart_buffer"
 
-/obj/vehicle/ridden/janicart/attack_hand(mob/user)
+/obj/vehicle/ridden/janicart/attack_hand(mob/user, list/modifiers)
 	. = ..()
-	if(.)
+	if(. || !mybag)
 		return
-	else if(mybag)
-		mybag.forceMove(get_turf(user))
-		user.put_in_hands(mybag)
-		mybag = null
-		update_icon()
+	mybag.forceMove(get_turf(user))
+	user.put_in_hands(mybag)
+	mybag = null
+	update_appearance()
 
 /obj/vehicle/ridden/janicart/upgraded
 	floorbuffer = TRUE

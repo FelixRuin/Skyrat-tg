@@ -143,9 +143,19 @@
 /obj/item/ammo_casing/energy/laser/accelerator
 	fire_sound = 'modular_skyrat/modules/aesthetics/guns/sound/laser_cannon_fire.ogg'
 
+/obj/item/gun/ballistic/automatic/sniper_rifle
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns_gubman2.dmi'
+	icon_state = "sniper"
+	fire_delay = 60
+
+/obj/item/gun/ballistic/automatic/sniper_rifle/syndicate
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns_gubman2.dmi'
+	icon_state = "sniper2"
+	fire_delay = 55
+
 /obj/item/gun/ballistic/automatic/sniper_rifle/modular
 	name = "AUS-107 anti-materiel rifle"
-	desc = "A long ranged Aussec Armory sniper rifle that does significant damage, features adaptive green hardlight sights instead of a bulky scope."
+	desc = "A devastating Aussec Armory heavy sniper rifle, fitted with a modern scope."
 	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns_gubman2.dmi'
 	icon_state = "sniper"
 	fire_sound = 'modular_skyrat/modules/aesthetics/guns/sound/sniperrifle.ogg'
@@ -155,11 +165,11 @@
 
 /obj/item/gun/ballistic/automatic/sniper_rifle/modular/syndicate
 	name = "'Caracal' anti-materiel rifle"  //we flop out
-	desc = "A sleek, light bullpup .50 BMG sniper rifle with a reciprocating barrel, nicknamed 'Caracal' by Scarborough Arms. Its compact folding parts make it able to fit into a backpack, and its modular barrel can have a suppressor installed within it rather than as a muzzle extension."
+	desc = "A sleek, light bullpup .50 BMG sniper rifle with a reciprocating barrel, nicknamed 'Caracal' by Scarborough Arms. Its compact folding parts make it able to fit into a backpack, and its modular barrel can have a suppressor installed within it rather than as a muzzle extension. Its advanced scope accounts for all ballistic inaccuracies of a reciprocating barrel."
 	icon_state = "sysniper"
 	fire_sound = 'modular_skyrat/modules/aesthetics/guns/sound/sniperrifle.ogg'
 	suppressed_sound = 'modular_skyrat/modules/aesthetics/guns/sound/sniperrifle_s.ogg'
-	fire_delay = 20 //Delay halved thanks to recoil absorption
+	fire_delay = 40 //Delay reduced thanks to recoil absorption
 	burst_size = 0.5
 	recoil = 1
 	can_suppress = TRUE
@@ -168,7 +178,7 @@
 
 /obj/item/gun/ballistic/automatic/sniper_rifle/modular/blackmarket  //Normal sniper but epic
 	name = "SA-107 anti-materiel rifle"
-	desc = "An illegal Scarborough Arms rendition of an Aussec Armory sniper rifle. This one has been fitted with red hardlight sights, a collapsible stock, and has a removable muzzle brake that allows easy attachment of suppressors."
+	desc = "An illegal Scarborough Arms rendition of an Aussec Armory sniper rifle. This one has been fitted with a heavier duty scope, a sturdier stock, and has a removable muzzle brake that allows easy attachment of suppressors."
 	icon_state = "sniper2"
 	fire_sound = 'modular_skyrat/modules/aesthetics/guns/sound/sniperrifle.ogg'
 	suppressed_sound = 'modular_skyrat/modules/aesthetics/guns/sound/sniperrifle_s.ogg'
@@ -182,17 +192,17 @@
 	recoil = 1.8
 	weapon_weight = WEAPON_HEAVY
 	mag_type = /obj/item/ammo_box/magazine/sniper_rounds
-	fire_delay = 35 //Slightly smaller than standard sniper
+	fire_delay = 55 //Slightly smaller than standard sniper
 	burst_size = 1
 	zoomable = TRUE
 	zoom_amt = 10 //Long range, enough to see in front of you, but no tiles behind you.
 	zoom_out_amt = 5
 	slot_flags = ITEM_SLOT_BACK
-	actions_types = list()
+	fire_select_modes = list(SELECT_SEMI_AUTOMATIC) //SKYRAT EDIT CHANGE
 	mag_display = TRUE
 
 /obj/item/gun/ballistic/automatic/ar/modular
-	name = "ARG-63 infantry rifle"
+	name = "NT ARG-63 infantry rifle"
 	desc = "Nanotrasen's prime ballistic option based on the Stoner design, fitted with a light polymer frame and other tactical furniture - nicknamed 'Boarder' by Special Operations teams."
 	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns_gubman2.dmi'
 	icon_state = "arg"
@@ -200,8 +210,8 @@
 	can_suppress = FALSE
 
 /obj/item/gun/ballistic/automatic/ar/modular/solrifle
-	name = "MCRS-5B combat rifle"
-	desc = "State of the art, expensive combat rifle used by the SolFed Marine Corps and other branches. This one is a lighter model that fires 5.56, designed for use by pilots."
+	name = "MCRS-5B ICWS"
+	desc = "State of the art expensive combat rifle used by the SFMC. This one is a lighter model that fires 5.56, designed for use by pilots. Do it for her."
 	icon_state = "mcrs"
 	inhand_icon_state = "arg"
 	selector_switch_icon = TRUE
@@ -213,3 +223,41 @@
 	w_class = WEIGHT_CLASS_NORMAL
 	can_suppress = FALSE
 	weapon_weight = WEAPON_HEAVY
+
+/obj/item/gun/energy/kinetic_accelerator
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/energy.dmi'
+	
+/obj/item/gun/ballistic/rifle/boltaction
+	name = "\improper Mosin Nagant 91-30"
+	desc = "This piece of junk looks like something that could have been used 700 years ago. It feels slightly moist."
+	sawn_desc = "An extremely sawn-off Mosin Nagant, popularly known as an \"obrez\". There was probably a reason it wasn't manufactured this short to begin with."
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns.dmi'
+	
+/obj/item/gun/ballistic/rifle/boltaction/brand_new
+	name = "\improper Mosin Nagant M39"
+	desc = "A freshly-produced Mosin Nagant variant issued by Nanotrasen for their interns. You would rather not damage it."
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns.dmi'
+	
+/obj/item/gun/ballistic/rifle/boltaction/brand_new/quartermaster
+	name = "\improper FTU 'Archangel' Mosin"
+	desc = "A very... Modernized MN91-30 rifle, the frame even feels a little flimsy. This thing was probably built with a conversion kit from spaceBay."
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns.dmi'
+	icon_state = "bubba"
+	worn_icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns_back.dmi'
+	worn_icon_state = "bubba"
+	mag_type = /obj/item/ammo_box/magazine/internal/boltaction/bubba
+	can_be_sawn_off = FALSE
+	realistic = TRUE
+	
+/obj/item/ammo_box/magazine/internal/boltaction/bubba
+	name = "mosin nagant extended internal magazine"
+	desc = "How did you get it out?"
+	ammo_type = /obj/item/ammo_casing/a762
+	caliber = CALIBER_A762
+	max_ammo = 8
+	multiload = TRUE
+	
+/obj/item/gun/ballistic/automatic/surplus
+	name = "\improper Type-69 Surplus Rifle"
+	desc = "One of countless obsolete ballistic rifles that still sees use as a cheap deterrent. Uses 10mm ammo and its bulky frame prevents one-hand firing."
+	icon = 'modular_skyrat/modules/aesthetics/guns/icons/guns.dmi'

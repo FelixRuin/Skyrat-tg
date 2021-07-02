@@ -1,6 +1,6 @@
 /obj/item/chameleon
-	name = "chameleon projector"
-	desc = "A projector used to seamlessly camouflage the user as an inanimate object." // SKYRATE EDIT - This item had no description?
+	name = "clandestine device" //skyrat edit
+	desc = "A vaguely insidious device with a scanner and large projector." // SKYRAT EDIT
 	icon = 'icons/obj/device.dmi'
 	icon_state = "shield0"
 	flags_1 = CONDUCT_1
@@ -14,6 +14,8 @@
 	throw_speed = 3
 	throw_range = 5
 	w_class = WEIGHT_CLASS_SMALL
+	special_desc_requirement = EXAMINE_CHECK_SYNDICATE // Skyrat edit
+	special_desc = "A hardlight projector used to seamlessly camouflage Syndicate infiltrators to appear as whatever the scanner touches." // Skyrat edit
 	var/can_use = 1
 	var/obj/effect/dummy/chameleon/active_dummy = null
 	var/saved_appearance = null
@@ -35,7 +37,7 @@
 	if (isturf(user.loc) || istype(user.loc, /obj/structure) || active_dummy)
 		toggle(user)
 	else
-		to_chat(user, "<span class='warning'>You can't use [src] while inside something!</span>")
+		to_chat(user, span_warning("You can't use [src] while inside something!"))
 
 /obj/item/chameleon/afterattack(atom/target, mob/user , proximity)
 	. = ..()
@@ -59,7 +61,7 @@
 		if(!(istype(target, /obj/effect/decal))) //be a footprint
 			return
 	playsound(get_turf(src), 'sound/weapons/flash.ogg', 100, TRUE, -6)
-	to_chat(user, "<span class='notice'>Scanned [target].</span>")
+	to_chat(user, span_notice("Scanned [target]."))
 	var/obj/temp = new/obj()
 	temp.appearance = target.appearance
 	temp.layer = initial(target.layer) // scanning things in your inventory
@@ -79,20 +81,20 @@
 		playsound(get_turf(src), 'sound/effects/pop.ogg', 100, TRUE, -6)
 		qdel(active_dummy)
 		active_dummy = null
-		to_chat(user, "<span class='notice'>You deactivate \the [src].</span>")
+		to_chat(user, span_notice("You deactivate \the [src]."))
 		new /obj/effect/temp_visual/emp/pulse(get_turf(src))
 	else
 		playsound(get_turf(src), 'sound/effects/pop.ogg', 100, TRUE, -6)
 		var/obj/effect/dummy/chameleon/C = new/obj/effect/dummy/chameleon(user.drop_location())
 		C.activate(user, saved_appearance, src)
-		to_chat(user, "<span class='notice'>You activate \the [src].</span>")
+		to_chat(user, span_notice("You activate \the [src]."))
 		new /obj/effect/temp_visual/emp/pulse(get_turf(src))
 	user.cancel_camera()
 
 /obj/item/chameleon/proc/disrupt(delete_dummy = 1)
 	if(active_dummy)
 		for(var/mob/M in active_dummy)
-			to_chat(M, "<span class='danger'>Your chameleon projector deactivates.</span>")
+			to_chat(M, span_danger("Your chameleon projector deactivates."))
 		var/datum/effect_system/spark_spread/spark_system = new /datum/effect_system/spark_spread
 		spark_system.set_up(5, 0, src)
 		spark_system.attach(src)
@@ -131,16 +133,16 @@
 	master.disrupt()
 
 //ATTACK HAND IGNORING PARENT RETURN VALUE
-/obj/effect/dummy/chameleon/attack_hand()
+/obj/effect/dummy/chameleon/attack_hand(mob/user, list/modifiers)
 	master.disrupt()
 
-/obj/effect/dummy/chameleon/attack_animal()
+/obj/effect/dummy/chameleon/attack_animal(mob/user, list/modifiers)
 	master.disrupt()
 
 /obj/effect/dummy/chameleon/attack_slime()
 	master.disrupt()
 
-/obj/effect/dummy/chameleon/attack_alien()
+/obj/effect/dummy/chameleon/attack_alien(mob/user, list/modifiers)
 	master.disrupt()
 
 /obj/effect/dummy/chameleon/ex_act(S, T)
@@ -152,8 +154,8 @@
 	master.disrupt()
 
 /obj/effect/dummy/chameleon/relaymove(mob/living/user, direction)
-	if(isspaceturf(loc) || !direction)
-		return //No magical space movement!
+	if(!isturf(loc) || isspaceturf(loc) || !direction)
+		return //No magical movement! Trust me, this bad boy can do things like leap out of pipes if you're not careful
 
 	if(can_move < world.time)
 		var/amount

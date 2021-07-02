@@ -17,22 +17,22 @@
 /obj/item/instrument/Initialize(mapload)
 	. = ..()
 	song = new(src, allowed_instrument_ids, instrument_range)
-	allowed_instrument_ids = null			//We don't need this clogging memory after it's used.
+	allowed_instrument_ids = null //We don't need this clogging memory after it's used.
 
 /obj/item/instrument/Destroy()
 	QDEL_NULL(song)
 	return ..()
 
 /obj/item/instrument/proc/should_stop_playing(mob/user)
-	return user.incapacitated() || !((loc == user) || (isturf(loc) && Adjacent(user)))		// sorry, no more TK playing.
+	return user.incapacitated() || !((loc == user) || (isturf(loc) && Adjacent(user))) // sorry, no more TK playing.
 
 /obj/item/instrument/suicide_act(mob/user)
-	user.visible_message("<span class='suicide'>[user] begins to play 'Gloomy Sunday'! It looks like [user.p_theyre()] trying to commit suicide!</span>")
+	user.visible_message(span_suicide("[user] begins to play 'Gloomy Sunday'! It looks like [user.p_theyre()] trying to commit suicide!"))
 	return (BRUTELOSS)
 
 /obj/item/instrument/attack_self(mob/user)
 	if(!ISADVANCEDTOOLUSER(user))
-		to_chat(user, "<span class='warning'>You don't have the dexterity to do this!</span>")
+		to_chat(user, span_warning("You don't have the dexterity to do this!"))
 		return TRUE
 	interact(user)
 
@@ -96,15 +96,17 @@
  * Called by a component signal when our song starts playing.
  */
 /obj/item/instrument/piano_synth/headphones/proc/start_playing()
+	SIGNAL_HANDLER
 	icon_state = "[initial(icon_state)]_on"
-	update_icon()
+	update_appearance()
 
 /**
  * Called by a component signal when our song stops playing.
  */
 /obj/item/instrument/piano_synth/headphones/proc/stop_playing()
+	SIGNAL_HANDLER
 	icon_state = "[initial(icon_state)]"
-	update_icon()
+	update_appearance()
 
 /obj/item/instrument/piano_synth/headphones/spacepods
 	name = "\improper Nanotrasen space pods"
@@ -253,8 +255,9 @@
 	actions_types = list(/datum/action/item_action/instrument)
 
 /obj/item/instrument/harmonica/proc/handle_speech(datum/source, list/speech_args)
+	SIGNAL_HANDLER
 	if(song.playing && ismob(loc))
-		to_chat(loc, "<span class='warning'>You stop playing the harmonica to talk...</span>")
+		to_chat(loc, span_warning("You stop playing the harmonica to talk..."))
 		song.playing = FALSE
 
 /obj/item/instrument/harmonica/equipped(mob/M, slot)

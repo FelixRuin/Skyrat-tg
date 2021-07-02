@@ -1,14 +1,13 @@
 SUBSYSTEM_DEF(blackbox)
 	name = "Blackbox"
 	wait = 6000
-	flags = SS_NO_TICK_CHECK
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
 	init_order = INIT_ORDER_BLACKBOX
 
-	var/list/feedback = list()	//list of datum/feedback_variable
+	var/list/feedback = list() //list of datum/feedback_variable
 	var/list/first_death = list() //the first death of this round, assoc. vars keep track of different things
 	var/triggertime = 0
-	var/sealed = FALSE	//time to stop tracking stats?
+	var/sealed = FALSE //time to stop tracking stats?
 	var/list/versions = list("antagonists" = 3,
 							"admin_secrets_fun_used" = 2,
 							"explosion" = 2,
@@ -28,13 +27,13 @@ SUBSYSTEM_DEF(blackbox)
 
 //poll population
 /datum/controller/subsystem/blackbox/fire()
-	set waitfor = FALSE	//for population query
+	set waitfor = FALSE //for population query
 
 	CheckPlayerCount()
 
 	if(CONFIG_GET(flag/use_exp_tracking))
-		if((triggertime < 0) || (world.time > (triggertime +3000)))	//subsystem fires once at roundstart then once every 10 minutes. a 5 min check skips the first fire. The <0 is midnight rollover check
-			update_exp(10,FALSE)
+		if((triggertime < 0) || (world.time > (triggertime +3000))) //subsystem fires once at roundstart then once every 10 minutes. a 5 min check skips the first fire. The <0 is midnight rollover check
+			update_exp(10)
 
 /datum/controller/subsystem/blackbox/proc/CheckPlayerCount()
 	set waitfor = FALSE
@@ -43,13 +42,14 @@ SUBSYSTEM_DEF(blackbox)
 		return
 	var/playercount = LAZYLEN(GLOB.player_list)
 	var/admincount = GLOB.admins.len
-	var/datum/db_query/query_record_playercount = SSdbcore.NewQuery({"
-		INSERT INTO [format_table_name("legacy_population")] (playercount, admincount, time, server_ip, server_port, round_id)
-		VALUES (:playercount, :admincount, :time, INET_ATON(:server_ip), :server_port, :round_id)
+	var/datum/db_query/query_record_playercount = SSdbcore.NewQuery(/* SKYRAT EDIT CHANGE - MULTISERVER */{"
+		INSERT INTO [format_table_name("legacy_population")] (playercount, admincount, time, server_name, server_ip, server_port, round_id)
+		VALUES (:playercount, :admincount, :time, :server_name, INET_ATON(:server_ip), :server_port, :round_id)
 	"}, list(
 		"playercount" = playercount,
 		"admincount" = admincount,
 		"time" = SQLtime(),
+		"server_name" = CONFIG_GET(string/serversqlname), // SKYRAT EDIT ADDITION - MULTISERVER
 		"server_ip" = world.internet_address || "0",
 		"server_port" = "[world.port]",
 		"round_id" = GLOB.round_id,
@@ -154,6 +154,10 @@ SUBSYSTEM_DEF(blackbox)
 			record_feedback("tally", "radio_usage", 1, "CTF red team")
 		if(FREQ_CTF_BLUE)
 			record_feedback("tally", "radio_usage", 1, "CTF blue team")
+		if(FREQ_CTF_GREEN)
+			record_feedback("tally", "radio_usage", 1, "CTF green team")
+		if(FREQ_CTF_YELLOW)
+			record_feedback("tally", "radio_usage", 1, "CTF yellow team")
 		else
 			record_feedback("tally", "radio_usage", 1, "other")
 
@@ -171,13 +175,13 @@ feedback data can be recorded in 5 formats:
 	used for simple single-string records i.e. the current map
 	further calls to the same key will append saved data unless the overwrite argument is true or it already exists
 	when encoded calls made with overwrite will lack square brackets
-	calls: 	SSblackbox.record_feedback("text", "example", 1, "sample text")
+	calls: SSblackbox.record_feedback("text", "example", 1, "sample text")
 			SSblackbox.record_feedback("text", "example", 1, "other text")
 	json: {"data":["sample text","other text"]}
 "amount"
 	used to record simple counts of data i.e. the number of ahelps received
 	further calls to the same key will add or subtract (if increment argument is a negative) from the saved amount
-	calls:	SSblackbox.record_feedback("amount", "example", 8)
+	calls: SSblackbox.record_feedback("amount", "example", 8)
 			SSblackbox.record_feedback("amount", "example", 2)
 	json: {"data":10}
 "tally"
@@ -185,7 +189,7 @@ feedback data can be recorded in 5 formats:
 	further calls to the same key will:
 		add or subtract from the saved value of the data key if it already exists
 		append the key and it's value if it doesn't exist
-	calls:	SSblackbox.record_feedback("tally", "example", 1, "sample data")
+	calls: SSblackbox.record_feedback("tally", "example", 1, "sample data")
 			SSblackbox.record_feedback("tally", "example", 4, "sample data")
 			SSblackbox.record_feedback("tally", "example", 2, "other data")
 	json: {"data":{"sample data":5,"other data":2}}
@@ -197,19 +201,19 @@ feedback data can be recorded in 5 formats:
 	further calls to the same key will:
 		add or subtract from the saved value of the data key if it already exists in the same multi-dimensional position
 		append the key and it's value if it doesn't exist
-	calls: 	SSblackbox.record_feedback("nested tally", "example", 1, list("fruit", "orange", "apricot"))
+	calls: SSblackbox.record_feedback("nested tally", "example", 1, list("fruit", "orange", "apricot"))
 			SSblackbox.record_feedback("nested tally", "example", 2, list("fruit", "orange", "orange"))
 			SSblackbox.record_feedback("nested tally", "example", 3, list("fruit", "orange", "apricot"))
 			SSblackbox.record_feedback("nested tally", "example", 10, list("fruit", "red", "apple"))
 			SSblackbox.record_feedback("nested tally", "example", 1, list("vegetable", "orange", "carrot"))
 	json: {"data":{"fruit":{"orange":{"apricot":4,"orange":2},"red":{"apple":10}},"vegetable":{"orange":{"carrot":1}}}}
 	tracking values associated with a number can't merge with a nesting value, trying to do so will append the list
-	call:	SSblackbox.record_feedback("nested tally", "example", 3, list("fruit", "orange"))
+	call: SSblackbox.record_feedback("nested tally", "example", 3, list("fruit", "orange"))
 	json: {"data":{"fruit":{"orange":{"apricot":4,"orange":2},"red":{"apple":10},"orange":3},"vegetable":{"orange":{"carrot":1}}}}
 "associative"
 	used to record text that's associated with a value i.e. coordinates
 	further calls to the same key will append a new list to existing data
-	calls:	SSblackbox.record_feedback("associative", "example", 1, list("text" = "example", "path" = /obj/item, "number" = 4))
+	calls: SSblackbox.record_feedback("associative", "example", 1, list("text" = "example", "path" = /obj/item, "number" = 4))
 			SSblackbox.record_feedback("associative", "example", 1, list("number" = 7, "text" = "example", "other text" = "sample"))
 	json: {"data":{"1":{"text":"example","path":"/obj/item","number":"4"},"2":{"number":"7","text":"example","other text":"sample"}}}
 
@@ -315,9 +319,9 @@ Versioning
 	if(!SSdbcore.Connect())
 		return
 
-	var/datum/db_query/query_report_death = SSdbcore.NewQuery({"
-		INSERT INTO [format_table_name("death")] (pod, x_coord, y_coord, z_coord, mapname, server_ip, server_port, round_id, tod, job, special, name, byondkey, laname, lakey, bruteloss, fireloss, brainloss, oxyloss, toxloss, cloneloss, staminaloss, last_words, suicide)
-		VALUES (:pod, :x_coord, :y_coord, :z_coord, :map, INET_ATON(:internet_address), :port, :round_id, :time, :job, :special, :name, :key, :laname, :lakey, :brute, :fire, :brain, :oxy, :tox, :clone, :stamina, :last_words, :suicide)
+	var/datum/db_query/query_report_death = SSdbcore.NewQuery(/* SKYRAT EDIT CHANGE - MULTISERVER */{"
+		INSERT INTO [format_table_name("death")] (pod, x_coord, y_coord, z_coord, mapname, server_name, server_ip, server_port, round_id, tod, job, special, name, byondkey, laname, lakey, bruteloss, fireloss, brainloss, oxyloss, toxloss, cloneloss, staminaloss, last_words, suicide)
+		VALUES (:pod, :x_coord, :y_coord, :z_coord, :map, :server_name, INET_ATON(:internet_address), :port, :round_id, :time, :job, :special, :name, :key, :laname, :lakey, :brute, :fire, :brain, :oxy, :tox, :clone, :stamina, :last_words, :suicide)
 	"}, list(
 		"name" = L.real_name,
 		"key" = L.ckey,
@@ -339,6 +343,7 @@ Versioning
 		"last_words" = L.last_words,
 		"suicide" = L.suiciding,
 		"map" = SSmapping.config.map_name,
+		"server_name" = CONFIG_GET(string/serversqlname),  // SKYRAT EDIT ADDITION - MULTISERVER
 		"internet_address" = world.internet_address || "0",
 		"port" = "[world.port]",
 		"round_id" = GLOB.round_id,
@@ -347,3 +352,48 @@ Versioning
 	if(query_report_death)
 		query_report_death.Execute(async = TRUE)
 		qdel(query_report_death)
+
+/datum/controller/subsystem/blackbox/proc/ReportCitation(citation, sender, sender_ic, recipient, message, fine = 0, paid = 0)
+	var/datum/db_query/query_report_citation = SSdbcore.NewQuery({"INSERT INTO [format_table_name("citation")]
+	(server_ip,
+	server_port,
+	round_id,
+	citation,
+	action,
+	sender,
+	sender_ic,
+	recipient,
+	crime,
+	fine,
+	paid,
+	timestamp) VALUES (
+	INET_ATON(:server_ip),
+	:port,
+	:round_id,
+	:citation,
+	:action,
+	:sender,
+	:sender_ic,
+	:recipient,
+	:message,
+	:fine,
+	:paid,
+	:timestamp
+	) ON DUPLICATE KEY UPDATE
+	paid = paid + VALUES(paid)"}, list(
+		"server_ip" = world.internet_address || "0",
+		"port" = "[world.port]",
+		"round_id" = GLOB.round_id,
+		"citation" = citation,
+		"action" = "Citation Created",
+		"sender" = sender,
+		"sender_ic" = sender_ic,
+		"recipient" = recipient,
+		"message" = message,
+		"fine" = fine,
+		"paid" = paid,
+		"timestamp" = SQLtime()
+	))
+	if(query_report_citation)
+		query_report_citation.Execute(async = TRUE)
+		qdel(query_report_citation)

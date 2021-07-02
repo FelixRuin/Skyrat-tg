@@ -97,7 +97,7 @@
 		var/obj/item/bodypart/BP = X
 		if(BP.dmg_overlay_type)
 			if(BP.brutestate)
-				damage_overlay.add_overlay("[BP.dmg_overlay_type]_[BP.body_zone]_[BP.brutestate]0")	//we're adding icon_states of the base image as overlays
+				damage_overlay.add_overlay("[BP.dmg_overlay_type]_[BP.body_zone]_[BP.brutestate]0") //we're adding icon_states of the base image as overlays
 			if(BP.burnstate)
 				damage_overlay.add_overlay("[BP.dmg_overlay_type]_[BP.body_zone]_0[BP.burnstate]")
 
@@ -114,7 +114,7 @@
 
 	if(client && hud_used?.inv_slots[TOBITSHIFT(ITEM_SLOT_MASK) + 1])
 		var/atom/movable/screen/inventory/inv = hud_used.inv_slots[TOBITSHIFT(ITEM_SLOT_MASK) + 1]
-		inv.update_icon()
+		inv.update_appearance()
 
 	if(wear_mask)
 		if(!(check_obscured_slots() & ITEM_SLOT_MASK))
@@ -130,7 +130,7 @@
 
 	if(client && hud_used?.inv_slots[TOBITSHIFT(ITEM_SLOT_NECK) + 1])
 		var/atom/movable/screen/inventory/inv = hud_used.inv_slots[TOBITSHIFT(ITEM_SLOT_NECK) + 1]
-		inv.update_icon()
+		inv.update_appearance()
 
 	if(wear_neck)
 		if(!(check_obscured_slots() & ITEM_SLOT_NECK))
@@ -144,7 +144,7 @@
 
 	if(client && hud_used?.inv_slots[TOBITSHIFT(ITEM_SLOT_BACK) + 1])
 		var/atom/movable/screen/inventory/inv = hud_used.inv_slots[TOBITSHIFT(ITEM_SLOT_BACK) + 1]
-		inv.update_icon()
+		inv.update_appearance()
 
 	if(back)
 		overlays_standing[BACK_LAYER] = back.build_worn_icon(default_layer = BACK_LAYER, default_icon_file = 'icons/mob/clothing/back.dmi')
@@ -162,7 +162,7 @@
 
 	if(client && hud_used?.inv_slots[TOBITSHIFT(ITEM_SLOT_BACK) + 1])
 		var/atom/movable/screen/inventory/inv = hud_used.inv_slots[TOBITSHIFT(ITEM_SLOT_HEAD) + 1]
-		inv.update_icon()
+		inv.update_appearance()
 
 	if(head)
 		overlays_standing[HEAD_LAYER] = head.build_worn_icon(default_layer = HEAD_LAYER, default_icon_file = 'icons/mob/clothing/head.dmi')
@@ -176,7 +176,13 @@
 /mob/living/carbon/update_inv_handcuffed()
 	remove_overlay(HANDCUFF_LAYER)
 	if(handcuffed)
-		overlays_standing[HANDCUFF_LAYER] = mutable_appearance('icons/mob/mob.dmi', "handcuff1", -HANDCUFF_LAYER)
+		var/mutable_appearance/handcuff_overlay = mutable_appearance('icons/mob/mob.dmi', "handcuff1", -HANDCUFF_LAYER)
+		if(handcuffed.blocks_emissive)
+			var/mutable_appearance/handcuff_blocker = mutable_appearance('icons/mob/mob.dmi', "handcuff1", plane = EMISSIVE_PLANE, appearance_flags = KEEP_APART)
+			handcuff_blocker.color = GLOB.em_block_color
+			handcuff_overlay.overlays += handcuff_blocker
+
+		overlays_standing[HANDCUFF_LAYER] = handcuff_overlay
 		apply_overlay(HANDCUFF_LAYER)
 
 
@@ -188,7 +194,7 @@
 		for(var/hand in hud_used.hand_slots)
 			var/atom/movable/screen/inventory/hand/H = hud_used.hand_slots[hand]
 			if(H)
-				H.update_icon()
+				H.update_appearance()
 
 //update whether our head item appears on our hud.
 /mob/living/carbon/proc/update_hud_head(obj/item/I)
@@ -212,10 +218,18 @@
 //eg: ammo counters, primed grenade flashing, etc.
 //"icon_file" is used automatically for inhands etc. to make sure it gets the right inhand file
 //SKYRAT EDIT CHANGE - CUSTOMIZATION
-///obj/item/proc/worn_overlays(isinhands = FALSE, icon_file) (original)
-/obj/item/proc/worn_overlays(isinhands = FALSE, icon_file, mutant_styles = NONE)
-	. = list()
+///obj/item/proc/worn_overlays(mutable_appearance/standing, isinhands = FALSE, icon_file) (original)
+/obj/item/proc/worn_overlays(mutable_appearance/standing, isinhands = FALSE, icon_file, mutant_styles = NONE)
+	SHOULD_CALL_PARENT(TRUE)
+	RETURN_TYPE(/list)
 
+	. = list()
+	if(!blocks_emissive)
+		return
+
+	var/mutable_appearance/blocker_overlay = mutable_appearance(standing.icon, standing.icon_state, plane = EMISSIVE_PLANE, appearance_flags = KEEP_APART)
+	blocker_overlay.color = GLOB.em_block_color
+	. += blocker_overlay
 
 /mob/living/carbon/update_body()
 	update_body_parts()
@@ -223,7 +237,7 @@
 /mob/living/carbon/proc/assign_bodypart_ownership()
 	for(var/X in bodyparts)
 		var/obj/item/bodypart/BP = X
-		BP.original_owner = src
+		BP.original_owner = WEAKREF(src)
 
 //SKYRAT EDIT REMOVAL BEGIN - CUSTOMIZATION (moved to modular)
 /*

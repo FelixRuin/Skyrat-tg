@@ -101,10 +101,10 @@
 /datum/sprite_accessory/spines
 	key = "spines"
 	generic = "Spines"
-	icon = 'modular_skyrat/modules/customization/icons/mob/mutant_bodyparts.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/mutant_bodyparts.dmi'
 	special_render_case = TRUE
 	default_color = DEFAULT_SECONDARY
-	recommended_species = list("lizard", "unathi", "ashlizard")
+	recommended_species = list("lizard", "unathi", "ashlizard", "silverlizard")
 	relevent_layers = list(BODY_BEHIND_LAYER, BODY_ADJ_LAYER)
 
 /datum/sprite_accessory/spines/is_hidden(mob/living/carbon/human/H, obj/item/bodypart/HD)
@@ -134,7 +134,7 @@
 	color_src = null
 
 /datum/sprite_accessory/socks
-	icon = 'modular_skyrat/modules/customization/icons/mob/clothing/underwear.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/clothing/underwear.dmi'
 	use_static = TRUE
 
 /datum/sprite_accessory/socks/socks_knee
@@ -219,9 +219,17 @@
 	name = "Thigh-high - Rainbow"
 	icon_state = "rainbow_thigh"
 
+/datum/sprite_accessory/socks/fishnet_thigh
+	name = "Thigh-high - Fishnet"
+	icon_state = "fishnet"
+
+/datum/sprite_accessory/socks/fishnet_thigh
+	name = "Pantyhose - Ripped"
+	icon_state = "pantyhose_ripped"
+	use_static = null
 
 /datum/sprite_accessory/underwear
-	icon = 'modular_skyrat/modules/customization/icons/mob/clothing/underwear.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/clothing/underwear.dmi'
 	///Whether the underwear uses a special sprite for digitigrade style (i.e. briefs, not panties). Adds a "_d" suffix to the icon state
 	var/has_digitigrade = FALSE
 
@@ -343,6 +351,16 @@
 	icon_state = "thong_babydoll"
 	gender = FEMALE
 
+/datum/sprite_accessory/underwear/chastbelt
+	name = "Chastity Belt"
+	icon_state = "chastbelt"
+	use_static = TRUE
+
+/datum/sprite_accessory/underwear/chastcage
+	name = "Chastity Cage"
+	icon_state = "chastcage"
+	use_static = null
+
 
 /datum/sprite_accessory/underwear/male_briefs
 	has_digitigrade = TRUE
@@ -373,7 +391,7 @@
 
 
 /datum/sprite_accessory/undershirt
-	icon = 'modular_skyrat/modules/customization/icons/mob/clothing/underwear.dmi'
+	icon = 'modular_skyrat/master_files/icons/mob/clothing/underwear.dmi'
 	use_static = TRUE
 
 /datum/sprite_accessory/undershirt/tanktop_alt
@@ -534,3 +552,39 @@
 	icon_state = "tubetop"
 	gender = FEMALE
 	use_static = null
+
+/datum/sprite_accessory/undershirt/chastbra
+	name = "Chastity Bra"
+	icon_state = "chastbra"
+	gender = FEMALE
+	use_static = TRUE
+
+/datum/sprite_accessory/undershirt/pasties
+	name = "Pasties"
+	icon_state = "pasties"
+	gender = FEMALE
+	use_static = null
+
+/datum/sprite_accessory/undershirt/pasties_alt
+	name = "Pasties - Alt"
+	icon_state = "pasties_alt"
+	gender = FEMALE
+	use_static = null
+
+/datum/sprite_accessory/undershirt/shibari
+	name = "Shibari"
+	icon_state = "shibari"
+	gender = FEMALE
+	use_static = null
+
+/datum/sprite_accessory/undershirt/shibari_sleeves
+	name = "Shibari Sleeves"
+	icon_state = "shibari_sleeves"
+	gender = FEMALE
+	use_static = null
+
+/datum/sprite_accessory/undershirt/bulletclub //4 life
+	name = "Shirt - Black Skull"
+	icon_state = "shirt_bc"
+	gender = NEUTER
+

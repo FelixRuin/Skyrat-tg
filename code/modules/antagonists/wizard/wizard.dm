@@ -17,8 +17,12 @@
 	show_to_ghosts = TRUE
 
 /datum/antagonist/wizard/on_gain()
+	//SKYRAT EDIT REMOVAL BEGIN - WIZARD CHANGES
+	/*
 	register()
 	equip_wizard()
+	*/
+	//SKYRAT EDIT REMOVAL END
 	if(give_objectives)
 		create_objectives()
 	if(move_to_lair)
@@ -26,12 +30,6 @@
 	. = ..()
 	if(allow_rename)
 		rename_wizard()
-
-/datum/antagonist/wizard/proc/register()
-	SSticker.mode.wizards |= owner
-
-/datum/antagonist/wizard/proc/unregister()
-	SSticker.mode.wizards -= src
 
 /datum/antagonist/wizard/create_team(datum/team/wizard/new_team)
 	if(!new_team)
@@ -64,6 +62,9 @@
 	owner.current.forceMove(pick(GLOB.wizardstart))
 
 /datum/antagonist/wizard/proc/create_objectives()
+	objectives += new /datum/objective/ambitions() //SKYRAT EDIT ADDITION - WIZARD CHANGES
+	//SKYRAT EDIT REMOVAL BEGIN - WIZARD CHANGES
+	/*
 	switch(rand(1,100))
 		if(1 to 30)
 			var/datum/objective/assassinate/kill_objective = new
@@ -108,10 +109,16 @@
 				var/datum/objective/hijack/hijack_objective = new
 				hijack_objective.owner = owner
 				objectives += hijack_objective
+	*/
+	//SKYRAT EDIT REMOVAL END
 
 /datum/antagonist/wizard/on_removal()
+	//SKYRAT EDIT REMOVAL BEGIN - WIZARD CHANGES
+	/*
 	unregister()
 	owner.RemoveAllSpells() // TODO keep track which spells are wizard spells which innate stuff
+	*/
+	//SKYRAT EDIT REMOVAL END
 	return ..()
 
 /datum/antagonist/wizard/proc/equip_wizard()
@@ -123,22 +130,29 @@
 	if(strip)
 		H.delete_equipment()
 	//Wizards are human by default. Use the mirror if you want something else.
+	//SKYRAT EDIT REMOVAL BEGIN - WIZARD CHANGES
+	/*
 	H.set_species(/datum/species/human)
+	*/
+	//SKYRAT EDIT REMOVAL END
 	if(H.age < wiz_age)
 		H.age = wiz_age
 	H.equipOutfit(outfit_type)
 
 /datum/antagonist/wizard/greet()
-	to_chat(owner, "<span class='boldannounce'>You are the Space Wizard!</span>")
-	to_chat(owner, "<B>The Space Wizards Federation has given you the following tasks:</B>")
+	to_chat(owner, "<span class='warningplain'><font color=red><B>You are the Space Wizard!</B></font></span>")
+	to_chat(owner, "<span class='warningplain'><B>The Space Wizards Federation has given you the following tasks:</B></span>")
 	owner.announce_objectives()
-	to_chat(owner, "You will find a list of available spells in your spell book. Choose your magic arsenal carefully.")
-	to_chat(owner, "The spellbook is bound to you, and others cannot use it.")
-	to_chat(owner, "In your pockets you will find a teleport scroll. Use it as needed.")
-	to_chat(owner,"<B>Remember:</B> Do not forget to prepare your spells.")
+	var/message = "<span class='warningplain'>"
+	message += "<BR>You will find a list of available spells in your spell book. Choose your magic arsenal carefully."
+	message += "<BR>The spellbook is bound to you, and others cannot use it."
+	message += "<BR>In your pockets you will find a teleport scroll. Use it as needed."
+	message += "<BR><B>Remember:</B> Do not forget to prepare your spells.</span>"
+	to_chat(owner, message)
+	..()
 
 /datum/antagonist/wizard/farewell()
-	to_chat(owner, "<span class='userdanger'>You have been brainwashed! You are no longer a wizard!</span>")
+	to_chat(owner, span_userdanger("You have been brainwashed! You are no longer a wizard!"))
 
 /datum/antagonist/wizard/proc/rename_wizard()
 	set waitfor = FALSE
@@ -184,12 +198,6 @@
 	to_chat(owner, "<B>You are [master.current.real_name]'s apprentice! You are bound by magic contract to follow [master.p_their()] orders and help [master.p_them()] in accomplishing [master.p_their()] goals.")
 	owner.announce_objectives()
 
-/datum/antagonist/wizard/apprentice/register()
-	SSticker.mode.apprentices |= owner
-
-/datum/antagonist/wizard/apprentice/unregister()
-	SSticker.mode.apprentices -= owner
-
 /datum/antagonist/wizard/apprentice/equip_wizard()
 	. = ..()
 	if(!owner)
@@ -226,6 +234,7 @@
 //Random event wizard
 /datum/antagonist/wizard/apprentice/imposter
 	name = "Wizard Imposter"
+	show_in_antagpanel = FALSE
 	allow_rename = FALSE
 	move_to_lair = FALSE
 
@@ -258,6 +267,7 @@
 
 /datum/antagonist/wizard/academy
 	name = "Academy Teacher"
+	show_in_antagpanel = FALSE
 	outfit_type = /datum/outfit/wizard/academy
 	move_to_lair = FALSE
 
@@ -290,16 +300,16 @@
 	var/wizardwin = 1
 	for(var/datum/objective/objective in objectives)
 		if(objective.check_completion())
-			parts += "<B>Objective #[count]</B>: [objective.explanation_text] <span class='greentext'>Success!</span>"
+			parts += "<B>Objective #[count]</B>: [objective.explanation_text] [span_greentext("Success!")]"
 		else
-			parts += "<B>Objective #[count]</B>: [objective.explanation_text] <span class='redtext'>Fail.</span>"
+			parts += "<B>Objective #[count]</B>: [objective.explanation_text] [span_redtext("Fail.")]"
 			wizardwin = 0
 		count++
 
 	if(wizardwin)
-		parts += "<span class='greentext'>The wizard was successful!</span>"
+		parts += span_greentext("The wizard was successful!")
 	else
-		parts += "<span class='redtext'>The wizard has failed!</span>"
+		parts += span_redtext("The wizard has failed!")
 
 	if(owner.spell_list.len>0)
 		parts += "<B>[owner.name] used the following spells: </B>"

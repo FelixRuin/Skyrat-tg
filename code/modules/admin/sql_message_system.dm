@@ -1,6 +1,6 @@
 /proc/create_message(type, target_key, admin_ckey, text, timestamp, server, secret, logged = 1, browse, expiry, note_severity)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	if(!type)
 		return
@@ -18,7 +18,7 @@
 			qdel(query_find_ckey)
 			return
 		if(!query_find_ckey.NextRow())
-			if(alert(usr, "[new_key]/([new_ckey]) has not been seen before, are you sure you want to create a [type] for them?", "Unknown ckey", "Yes", "No", "Cancel") != "Yes")
+			if(tgui_alert(usr, "[new_key]/([new_ckey]) has not been seen before, are you sure you want to create a [type] for them?", "Unknown ckey", list("Yes", "No", "Cancel")) != "Yes")
 				qdel(query_find_ckey)
 				return
 		qdel(query_find_ckey)
@@ -45,7 +45,7 @@
 		if (ssqlname)
 			server = ssqlname
 	if(isnull(secret))
-		switch(alert("Hide note from being viewed by players?", "Secret note?","Yes","No","Cancel"))
+		switch(tgui_alert(usr,"Hide note from being viewed by players?", "Secret note?",list("Yes","No","Cancel")))
 			if("Yes")
 				secret = 1
 			if("No")
@@ -53,7 +53,7 @@
 			else
 				return
 	if(isnull(expiry))
-		if(alert(usr, "Set an expiry time? Expired messages are hidden like deleted ones.", "Expiry time?", "Yes", "No", "Cancel") == "Yes")
+		if(tgui_alert(usr, "Set an expiry time? Expired messages are hidden like deleted ones.", "Expiry time?", list("Yes", "No", "Cancel")) == "Yes")
 			var/expire_time = input("Set expiry time for [type] as format YYYY-MM-DD HH:MM:SS. All times in server time. HH:MM:SS is optional and 24-hour. Must be later than current time for obvious reasons.", "Set expiry time", SQLtime()) as null|text
 			if(!expire_time)
 				return
@@ -76,15 +76,16 @@
 		note_severity = input("Set the severity of the note.", "Severity", null, null) as null|anything in list("High", "Medium", "Minor", "None")
 		if(!note_severity)
 			return
-	var/datum/db_query/query_create_message = SSdbcore.NewQuery({"
-		INSERT INTO [format_table_name("messages")] (type, targetckey, adminckey, text, timestamp, server, server_ip, server_port, round_id, secret, expire_timestamp, severity, playtime)
-		VALUES (:type, :target_ckey, :admin_ckey, :text, :timestamp, :server, INET_ATON(:internet_address), :port, :round_id, :secret, :expiry, :note_severity, (SELECT `minutes` FROM [format_table_name("role_time")] WHERE `ckey` = :target_ckey AND `job` = 'Living'))
+	var/datum/db_query/query_create_message = SSdbcore.NewQuery(/* SKYRAT EDIT CHANGE - MULTISERVER */{"
+		INSERT INTO [format_table_name("messages")] (type, targetckey, adminckey, text, timestamp, server_name, server, server_ip, server_port, round_id, secret, expire_timestamp, severity, playtime)
+		VALUES (:type, :target_ckey, :admin_ckey, :text, :timestamp, :server_name, :server, INET_ATON(:internet_address), :port, :round_id, :secret, :expiry, :note_severity, (SELECT `minutes` FROM [format_table_name("role_time")] WHERE `ckey` = :target_ckey AND `job` = 'Living'))
 	"}, list(
 		"type" = type,
 		"target_ckey" = target_ckey,
 		"admin_ckey" = admin_ckey,
 		"text" = text,
 		"timestamp" = timestamp,
+		"server_name" = CONFIG_GET(string/serversqlname), // SKYRAT EDIT ADDITION - MULTISERVER
 		"server" = server,
 		"internet_address" = world.internet_address || "0",
 		"port" = "[world.port]",
@@ -111,7 +112,7 @@
 
 /proc/delete_message(message_id, logged = 1, browse)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	message_id = text2num(message_id)
 	if(!message_id)
@@ -154,7 +155,7 @@
 
 /proc/edit_message(message_id, browse)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	message_id = text2num(message_id)
 	if(!message_id)
@@ -204,7 +205,7 @@
 
 /proc/edit_message_expiry(message_id, browse)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	message_id = text2num(message_id)
 	if(!message_id)
@@ -275,7 +276,7 @@
 
 /proc/edit_message_severity(message_id)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	message_id = text2num(message_id)
 	if(!message_id)
@@ -326,7 +327,7 @@
 
 /proc/toggle_message_secrecy(message_id)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	message_id = text2num(message_id)
 	if(!message_id)
@@ -370,7 +371,7 @@
 
 /proc/browse_messages(type, target_ckey, index, linkless = FALSE, filter, agegate = FALSE)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	var/list/output = list()
 	var/ruler = "<hr style='background:#000000; border:0; height:3px'>"
@@ -397,7 +398,7 @@
 			else
 				output += "<a href='?_src_=holder;[HrefToken()];showwatchfilter=1'>Filter offline clients</a></center>"
 		output += ruler
-		var/datum/db_query/query_get_type_messages = SSdbcore.NewQuery({"
+		var/datum/db_query/query_get_type_messages = SSdbcore.NewQuery(/* SKYRAT EDIT CHANGE - MULTISERVER */{"
 			SELECT
 				id,
 				IFNULL((SELECT byond_key FROM [format_table_name("player")] WHERE ckey = targetckey), targetckey),
@@ -405,6 +406,7 @@
 				IFNULL((SELECT byond_key FROM [format_table_name("player")] WHERE ckey = adminckey), adminckey),
 				text,
 				timestamp,
+				server_name,
 				server,
 				IFNULL((SELECT byond_key FROM [format_table_name("player")] WHERE ckey = lasteditor), lasteditor),
 				expire_timestamp,
@@ -427,9 +429,9 @@
 			var/text = query_get_type_messages.item[5]
 			var/timestamp = query_get_type_messages.item[6]
 			var/server = query_get_type_messages.item[7]
-			var/editor_key = query_get_type_messages.item[8]
-			var/expire_timestamp = query_get_type_messages.item[9]
-			var/playtime = query_get_type_messages.item[10]
+			var/editor_key = query_get_type_messages.item[9] // SKYRAT EDIT CHANGE BEGIN - MULTISERVER
+			var/expire_timestamp = query_get_type_messages.item[10]
+			var/playtime = query_get_type_messages.item[11] // SKYRAT EDIT CHANGE END - MULTISERVER
 			output += "<b>"
 			if(type == "watchlist entry")
 				output += "[t_key] | "
@@ -448,7 +450,7 @@
 		qdel(query_get_type_messages)
 	if(target_ckey)
 		var/target_key
-		var/datum/db_query/query_get_messages = SSdbcore.NewQuery({"
+		var/datum/db_query/query_get_messages = SSdbcore.NewQuery(/* SKYRAT EDIT CHANGE - MULTISERVER */{"
 			SELECT
 				type,
 				secret,
@@ -456,6 +458,7 @@
 				IFNULL((SELECT byond_key FROM [format_table_name("player")] WHERE ckey = adminckey), adminckey),
 				text,
 				timestamp,
+				server_name,
 				server,
 				IFNULL((SELECT byond_key FROM [format_table_name("player")] WHERE ckey = lasteditor), lasteditor),
 				DATEDIFF(NOW(), timestamp),
@@ -486,12 +489,12 @@
 			var/text = query_get_messages.item[5]
 			var/timestamp = query_get_messages.item[6]
 			var/server = query_get_messages.item[7]
-			var/editor_key = query_get_messages.item[8]
-			var/age = text2num(query_get_messages.item[9])
-			target_key = query_get_messages.item[10]
-			var/expire_timestamp = query_get_messages.item[11]
-			var/severity = query_get_messages.item[12]
-			var/playtime = query_get_messages.item[13]
+			var/editor_key = query_get_messages.item[9] // SKYRAT EDIT CHANGE BEGIN - MULTISERVER
+			var/age = text2num(query_get_messages.item[10])
+			target_key = query_get_messages.item[11]
+			var/expire_timestamp = query_get_messages.item[12]
+			var/severity = query_get_messages.item[13]
+			var/playtime = query_get_messages.item[14] // SKYRAT EDIT CHANGE END - MULTISERVER
 			var/alphatext = ""
 			var/nsd = CONFIG_GET(number/note_stale_days)
 			var/nfd = CONFIG_GET(number/note_fresh_days)
@@ -623,7 +626,7 @@
 
 /proc/get_message_output(type, target_ckey)
 	if(!SSdbcore.Connect())
-		to_chat(usr, "<span class='danger'>Failed to establish database connection.</span>", confidential = TRUE)
+		to_chat(usr, span_danger("Failed to establish database connection."), confidential = TRUE)
 		return
 	if(!type)
 		return
@@ -652,7 +655,7 @@
 		var/editor_key = query_get_message_output.item[5]
 		switch(type)
 			if("message")
-				output += "<font color='red' size='3'><b>Admin message left by <span class='prefix'>[admin_key]</span> on [timestamp]</b></font>"
+				output += "<font color='red' size='3'><b>Admin message left by [span_prefix("[admin_key]")] on [timestamp]</b></font>"
 				output += "<br><font color='red'>[text]</font><br>"
 				var/datum/db_query/query_message_read = SSdbcore.NewQuery(
 					"UPDATE [format_table_name("messages")] SET type = 'message sent' WHERE id = :id",
@@ -667,9 +670,9 @@
 				message_admins("<font color='red'><B>Notice: </B></font><font color='blue'>[key_name_admin(target_ckey)] has been on the watchlist since [timestamp] and has just connected - Reason: [text]</font>")
 				send2tgs_adminless_only("Watchlist", "[key_name(target_ckey)] is on the watchlist and has just connected - Reason: [text]")
 			if("memo")
-				output += "<span class='memo'>Memo by <span class='prefix'>[admin_key]</span> on [timestamp]"
+				output += "[span_memo("Memo by <span class='prefix'>[admin_key]")] on [timestamp]"
 				if(editor_key)
-					output += "<br><span class='memoedit'>Last edit by [editor_key] <A href='?_src_=holder;[HrefToken()];messageedits=[message_id]'>(Click here to see edit log)</A></span>"
+					output += "<br>[span_memoedit("Last edit by [editor_key] <A href='?_src_=holder;[HrefToken()];messageedits=[message_id]'>(Click here to see edit log)</A>")]"
 				output += "<br>[text]</span><br>"
 	qdel(query_get_message_output)
 	return output

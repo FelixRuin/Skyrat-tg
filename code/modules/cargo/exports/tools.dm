@@ -3,9 +3,9 @@
 	unit_name = "toolbox"
 	export_types = list(/obj/item/storage/toolbox)
 
-// mechanical toolbox:	22cr
-// emergency toolbox:	17-20cr
-// electrical toolbox:	36cr
+// mechanical toolbox: 22cr
+// emergency toolbox: 17-20cr
+// electrical toolbox: 36cr
 // robust: priceless
 
 // Basic tools
@@ -99,7 +99,7 @@
 /datum/export/weldingtool/experimental
 	cost = CARGO_CRATE_VALUE * 0.45
 	unit_name = "experimental welding tool"
-	export_types = list(/obj/item/weldingtool/experimental)
+	export_types = list(/obj/item/weldingtool/electric) //SKYRAT EDIT CHANGE - ELECTRIC WELDER
 
 /datum/export/jawsoflife
 	cost = CARGO_CRATE_VALUE * 0.5

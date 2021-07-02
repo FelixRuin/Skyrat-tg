@@ -10,6 +10,7 @@
 	if(controller.blackboard[BB_VENDING_BUSY_TILTING])
 		return
 
+	controller.ai_movement.stop_moving_towards(controller)
 	controller.blackboard[BB_VENDING_BUSY_TILTING] = TRUE
 	var/turf/target_turf = get_turf(controller.blackboard[BB_VENDING_CURRENT_TARGET])
 	new /obj/effect/temp_visual/telegraphing/vending_machine_tilt(target_turf)
@@ -37,7 +38,7 @@
 /datum/ai_behavior/vendor_rise_up/perform(delta_time, datum/ai_controller/controller)
 	. = ..()
 	var/obj/machinery/vending/vendor_pawn = controller.pawn
-	vendor_pawn.visible_message("<span class='warning'>[vendor_pawn] untilts itself!</span>")
+	vendor_pawn.visible_message(span_warning("[vendor_pawn] untilts itself!"))
 	if(controller.blackboard[BB_VENDING_LAST_HIT_SUCCESFUL])
 		controller.blackboard[BB_VENDING_TILT_COOLDOWN] = world.time + succes_tilt_cooldown
 	vendor_pawn.untilt()

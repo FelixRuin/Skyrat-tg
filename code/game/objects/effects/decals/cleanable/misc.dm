@@ -89,7 +89,7 @@
 	beauty = -300
 
 /obj/effect/decal/cleanable/greenglow/ex_act()
-	return
+	return FALSE
 
 /obj/effect/decal/cleanable/greenglow/filled/Initialize()
 	. = ..()
@@ -137,7 +137,7 @@
 	random_icon_states = list("vomit_1", "vomit_2", "vomit_3", "vomit_4")
 	beauty = -150
 
-/obj/effect/decal/cleanable/vomit/attack_hand(mob/user)
+/obj/effect/decal/cleanable/vomit/attack_hand(mob/user, list/modifiers)
 	. = ..()
 	if(.)
 		return
@@ -145,7 +145,7 @@
 		var/mob/living/carbon/human/H = user
 		if(isflyperson(H))
 			playsound(get_turf(src), 'sound/items/drink.ogg', 50, TRUE) //slurp
-			H.visible_message("<span class='alert'>[H] extends a small proboscis into the vomit pool, sucking it with a slurping sound.</span>")
+			H.visible_message(span_alert("[H] extends a small proboscis into the vomit pool, sucking it with a slurping sound."))
 			if(reagents)
 				for(var/datum/reagent/R in reagents.reagent_list)
 					if (istype(R, /datum/reagent/consumable))
@@ -181,7 +181,7 @@
 	mergeable_decal = FALSE
 
 /obj/effect/decal/cleanable/shreds/ex_act(severity, target)
-	if(severity == 1) //so shreds created during an explosion aren't deleted by the explosion.
+	if(severity >= EXPLODE_DEVASTATE) //so shreds created during an explosion aren't deleted by the explosion.
 		qdel(src)
 
 /obj/effect/decal/cleanable/shreds/Initialize(mapload, oldname)

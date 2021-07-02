@@ -4,6 +4,7 @@
 	show_in_antagpanel = FALSE
 	prevent_roundtype_conversion = FALSE
 	var/datum/mind/date
+	soft_antag = TRUE
 
 /datum/antagonist/valentine/proc/forge_objectives()
 	var/datum/objective/protect/protect_objective = new /datum/objective/protect
@@ -28,7 +29,7 @@
 	. = ..()
 
 /datum/antagonist/valentine/greet()
-	to_chat(owner, "<span class='warning'><B>You're on a date with [date.name]! Protect [date.p_them()] at all costs. This takes priority over all other loyalties.</B></span>")
+	to_chat(owner, span_warning("<B>You're on a date with [date.name]! Protect [date.p_them()] at all costs. This takes priority over all other loyalties.</B>"))
 
 //Squashed up a bit
 /datum/antagonist/valentine/roundend_report()

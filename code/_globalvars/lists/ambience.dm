@@ -1,3 +1,4 @@
+/* SKYRAT EDIT REMOVAL BEGIN
 GLOBAL_LIST_INIT(generic_ambience,list(
 	'sound/ambience/ambigen1.ogg', 'sound/ambience/ambigen3.ogg',
 	'sound/ambience/ambigen4.ogg', 'sound/ambience/ambigen5.ogg',
@@ -6,6 +7,7 @@ GLOBAL_LIST_INIT(generic_ambience,list(
 	'sound/ambience/ambigen10.ogg', 'sound/ambience/ambigen11.ogg',
 	'sound/ambience/ambigen12.ogg', 'sound/ambience/ambigen14.ogg',
 	'sound/ambience/ambigen15.ogg'))
+*/ //SKYRAT EDIT REMOVAL END
 
 GLOBAL_LIST_INIT(holy_ambience,list(
 	'sound/ambience/ambicha1.ogg', 'sound/ambience/ambicha2.ogg',
@@ -39,7 +41,7 @@ GLOBAL_LIST_INIT(mining_ambience,list(
 	'sound/ambience/ambiruin5.ogg', 'sound/ambience/ambiruin6.ogg',
 	'sound/ambience/ambiruin7.ogg', 'sound/ambience/ambidanger.ogg',
 	'sound/ambience/ambidanger2.ogg', 'sound/ambience/ambimaint1.ogg',
-	'sound/ambience/ambilava1.ogg', 'sound/ambience/ambilava2.ogg', 
+	'sound/ambience/ambilava1.ogg', 'sound/ambience/ambilava2.ogg',
 	'sound/ambience/ambilava3.ogg'))
 
 GLOBAL_LIST_INIT(medical_ambience,list('sound/ambience/ambinice.ogg'))
@@ -50,8 +52,8 @@ GLOBAL_LIST_INIT(spooky_ambience,list(
 	'sound/ambience/ambiodd.ogg', 'sound/ambience/ambimystery.ogg'))
 
 GLOBAL_LIST_INIT(space_ambience,list(
-	'sound/ambience/ambispace.ogg', 'sound/ambience/ambispace2.ogg',
-	'sound/ambience/title2.ogg', 'sound/ambience/ambiatmos.ogg'))
+	'sound/ambience/ambispace.ogg', 'sound/ambience/ambispace2.ogg', 'sound/ambience/title2.ogg',
+	'sound/ambience/ambispace3.ogg', 'sound/ambience/ambiatmos.ogg', 'modular_skyrat/master_files/sound/ambience/starlight.ogg')) //SKYRAT EDIT ADDITION
 
 GLOBAL_LIST_INIT(maint_ambience,list(
 	'sound/ambience/ambimaint1.ogg', 'sound/ambience/ambimaint2.ogg',

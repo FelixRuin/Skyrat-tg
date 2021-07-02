@@ -1,6 +1,6 @@
 ## Skyrat 13 (/tg/station Downstream)
 
-[![Build Status](https://github.com/Skyrat-SS13/Skyrat-tg/workflows/CI%20Suite/badge.svg)](https://github.com/Skyrat-SS13/Skyrat-tg/actions?query=workflow%3A%22CI+Suite%22)
+[![CI Suite](https://github.com/Skyrat-SS13/Skyrat-tg/actions/workflows/ci_suite.yml/badge.svg)](https://github.com/Skyrat-SS13/Skyrat-tg/actions/workflows/ci_suite.yml)
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/Skyrat-SS13/Skyrat-tg.svg)](https://isitmaintained.com/project/Skyrat-SS13/Skyrat-tg "Percentage of issues still open")
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/Skyrat-SS13/Skyrat-tg.svg)](https://isitmaintained.com/project/Skyrat-SS13/Skyrat-tg "Average time to resolve an issue")
 ![Coverage](https://img.shields.io/codecov/c/github/Skyrat-SS13/Skyrat-tg)
@@ -32,6 +32,18 @@ Space Station 13 is a paranoia-laden round-based roleplaying game set against th
 [Running on the server](.github/RUNNING_A_SERVER.md)
 
 [Maps and Away Missions](.github/MAPS_AND_AWAY_MISSIONS.md)
+
+## :exclamation: How to compile :exclamation:
+
+On **2021-01-04** we have changed the way to compile the codebase.
+
+Find `BUILD.bat` here in the root folder of tgstation, and double click it to initiate the build. It consists of multiple steps and might take around 1-5 minutes to compile.
+
+After it finishes, you can then [setup the server](.github/RUNNING_A_SERVER.md) normally by opening `tgstation.dmb` in DreamDaemon.
+
+**Building tgstation in DreamMaker directly is now deprecated and might produce errors**, such as `'tgui.bundle.js': cannot find file`.
+
+**[How to compile in VSCode and other build options](tools/build/README.md).**
 
 ## Requirements for contributors
 [Guidelines for Contributors](.github/CONTRIBUTING.md)

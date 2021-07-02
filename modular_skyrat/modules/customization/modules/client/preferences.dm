@@ -21,7 +21,7 @@ GLOBAL_LIST_INIT(food, list(
 	var/client/parent
 	//doohickeys for savefiles
 	var/path
-	var/default_slot = 1				//Holder so it doesn't default to slot 1, rather the last one used
+	var/default_slot = 1 //Holder so it doesn't default to slot 1, rather the last one used
 	var/max_save_slots = 20
 
 	//non-preference stuff
@@ -30,17 +30,21 @@ GLOBAL_LIST_INIT(food, list(
 	var/last_id
 
 	//game-preferences
-	var/lastchangelog = ""				//Saved changlog filesize to detect if there was a change
+	var/lastchangelog = "" //Saved changlog filesize to detect if there was a change
 	var/ooccolor = "#c43b23"
-	var/asaycolor = "#ff4500"			//This won't change the color for current admins, only incoming ones.
+	var/asaycolor = "#ff4500" //This won't change the color for current admins, only incoming ones.
+	var/auto_dementor = TRUE //To be turned off by admins that don't want to be dementored at round start.
+	/// If we spawn an ERT as an admin and choose to spawn as the briefing officer, we'll be given this outfit
+	var/brief_outfit = /datum/outfit/centcom/commander
 	var/enable_tips = TRUE
 	var/tip_delay = 500 //tip delay in milliseconds
 
 	//Antag preferences
-	var/list/be_special = list()		//Special role selection
-	var/tmp/old_be_special = 0			//Bitflag version of be_special, used to update old savefiles and nothing more
+	var/list/be_special = list() //Special role selection
+	var/tmp/old_be_special = 0 //Bitflag version of be_special, used to update old savefiles and nothing more
 										//If it's 0, that's good, if it's anything but 0, the owner of this prefs file's antag choices were,
 										//autocorrected this round, not that you'd need to check that.
+	var/be_antag = TRUE //Does this player wish to be an antag this round?
 
 	var/UI_style = null
 	var/buttons_locked = FALSE
@@ -78,28 +82,31 @@ GLOBAL_LIST_INIT(food, list(
 
 	//aphrodisiac preference
 	var/aphrodisiacs_pref = 1
+	var/cumfaced_pref = 0
 
 	var/uses_glasses_colour = 0
 
 	//character preferences
-	var/slot_randomized					//keeps track of round-to-round randomization of the character slot, prevents overwriting
-	var/real_name						//our character's name
-	var/gender = MALE					//gender of character (well duh)
-	var/age = 30						//age of character
-	var/underwear = "Nude"				//underwear type
-	var/underwear_color = "FFF"			//underwear color
-	var/undershirt = "Nude"				//undershirt type
-	var/undershirt_color = "FFF"			//underwear color
-	var/socks = "Nude"					//socks type
+	var/slot_randomized //keeps track of round-to-round randomization of the character slot, prevents overwriting
+	var/real_name //our character's name
+	var/gender = MALE //gender of character (well duh)
+	var/age = 30 //age of character
+	var/underwear = "Nude" //underwear type
+	var/underwear_color = "FFF" //underwear color
+	var/undershirt = "Nude" //undershirt type
+	var/undershirt_color = "FFF" //underwear color
+	var/socks = "Nude" //socks type
 	var/socks_color = "FFF"			//underwear color
-	var/backpack = DBACKPACK				//backpack type
-	var/jumpsuit_style = PREF_SUIT		//suit/skirt
-	var/hairstyle = "Bald"				//Hair type
-	var/hair_color = "000"				//Hair color
-	var/facial_hairstyle = "Shaved"	//Face hair type
-	var/facial_hair_color = "000"		//Facial hair color
-	var/skin_tone = "caucasian1"		//Skin color
-	var/eye_color = "000"				//Eye color
+	var/backpack = DBACKPACK //backpack type
+	var/jumpsuit_style = PREF_SUIT //suit/skirt
+	var/hairstyle = "Bald" //Hair type
+	var/hair_color = "000" //Hair color
+	var/facial_hairstyle = "Shaved" //Face hair type
+	var/facial_hair_color = "000" //Facial hair color
+	var/skin_tone = "caucasian1" //Skin color
+	var/eye_color = "000" //Eye color
+	var/datum/scream_type/pref_scream = new /datum/scream_type/human() //Scream type
+	var/datum/laugh_type/pref_laugh = new /datum/laugh_type/human() //Laugh type
 	var/datum/species/pref_species = new /datum/species/human()	//Mutant race
 	//Has to include all information that extra organs from mutant bodyparts would need. (so far only genitals now)
 	var/list/features = MANDATORY_FEATURE_LIST
@@ -112,7 +119,7 @@ GLOBAL_LIST_INIT(food, list(
 
 	var/list/custom_names = list()
 	var/preferred_ai_core_display = "Blue"
-	var/prefered_security_department = SEC_DEPT_RANDOM
+	var/prefered_security_department = SEC_DEPT_NONE
 
 	//Quirk list
 	var/list/all_quirks = list()
@@ -120,6 +127,8 @@ GLOBAL_LIST_INIT(food, list(
 	//Job preferences 2.0 - indexed by job title , no key or value implies never
 	var/list/job_preferences = list()
 
+	// Alternate Job Titles
+	var/list/alt_titles_preferences = list()
 		// Want randomjob if preferences already filled - Donkie
 	var/joblessrole = BERANDOMJOB  //defaults to 1 for fewer assistants
 
@@ -133,6 +142,13 @@ GLOBAL_LIST_INIT(food, list(
 	var/clientfps = 40
 
 	var/parallax
+
+	///Do we show screentips, if so, how big?
+	var/screentip_pref = TRUE
+	///Color of screentips at top of screen
+	var/screentip_color = "#ffd391"
+	///Do we show item hover outlines?
+	var/itemoutline_pref = TRUE
 
 	var/ambientocclusion = TRUE
 	///Should we automatically fit the viewport?
@@ -161,15 +177,12 @@ GLOBAL_LIST_INIT(food, list(
 	var/hearted_until
 	/// Agendered spessmen can choose whether to have a male or female bodytype
 	var/body_type
-
 	/// If we have persistent scars enabled
 	var/persistent_scars = TRUE
 	///If we want to broadcast deadchat connect/disconnect messages
 	var/broadcast_login_logout = FALSE
-	/// We have 5 slots for persistent scars, if enabled we pick a random one to load (empty by default) and scars at the end of the shift if we survived as our original person
-	var/list/scars_list = list("1" = "", "2" = "", "3" = "", "4" = "", "5" = "")
-	/// Which of the 5 persistent scar slots we randomly roll to load for this round, if enabled. Actually rolled in [/datum/preferences/proc/load_character(slot)]
-	var/scars_index = 1
+	///What outfit typepaths we've favorited in the SelectEquipment menu
+	var/list/favorite_outfits = list()
 	/// Will the person see accessories not meant for their species to choose from
 	var/mismatched_customization = FALSE
 	var/allow_advanced_colors = FALSE
@@ -212,6 +225,19 @@ GLOBAL_LIST_INIT(food, list(
 	var/show_body_size = FALSE
 	///The arousal state of the previewed character, can be toggled by the user
 	var/arousal_preview = AROUSAL_NONE
+	///The current volume setting for announcements
+	var/announcement_volume = 60
+
+	/// Chosen cultural informations
+	var/pref_culture = /datum/cultural_info/culture/generic
+	var/pref_location = /datum/cultural_info/location/generic
+	var/pref_faction = /datum/cultural_info/faction/none
+	/// Whether someone wishes to see more information regarding either of those
+	var/culture_more_info = FALSE
+	var/location_more_info = FALSE
+	var/faction_more_info = FALSE
+	//Associative list, keyed by language typepath, pointing to LANGUAGE_UNDERSTOOD, or LANGUAGE_SPOKEN, for whether we understand or speak the language
+	var/list/languages = list()
 
 /datum/preferences/New(client/C)
 	parent = C
@@ -231,18 +257,41 @@ GLOBAL_LIST_INIT(food, list(
 		if(load_character())
 			return
 	//we couldn't load character data so just randomize the character appearance + name
-	random_character()		//let's create a random character then - rather than a fat, bald and naked man.
+	set_new_species(/datum/species/human)
+	random_character() //let's create a random character then - rather than a fat, bald and naked man.
 	key_bindings = deepCopyList(GLOB.hotkey_keybinding_list_by_key) // give them default keybinds and update their movement keys
-	C?.set_macros(src)
+	C?.set_macros()
 	real_name = pref_species.random_name(gender,1)
 	if(!loaded_preferences_successfully)
 		save_preferences()
-	save_character()		//let's save this new random character so it doesn't keep generating new ones.
+	save_character() //let's save this new random character so it doesn't keep generating new ones.
 	menuoptions = list()
 	return
 
 #define APPEARANCE_CATEGORY_COLUMN "<td valign='top' width='14%'>"
 #define MAX_MUTANT_ROWS 4
+#define FLAVORTEXT_JOIN_MINIMUM 150
+
+/datum/preferences/proc/check_flavor_text(inform_client = TRUE)
+	if(!features["flavor_text"])
+		if(check_rights(R_ADMIN, FALSE))
+			var/resp = tgui_input_list(usr, "Do you want to bypass the flavor text requirement?", "Confirmation", list("Yes", "No"), 1 MINUTES)
+			if(resp=="Yes")
+				message_admins("[usr] is bypassing the flavor text requirements.")
+				return TRUE
+		if(inform_client)
+			to_chat(parent, "<span class='userdanger'>You must have a flavor text!</span>")
+		return FALSE
+	if(length(replacetext(features["flavor_text"], " ", "")) < FLAVORTEXT_JOIN_MINIMUM) // No you can't use whitespace to meet the requirement
+		if(check_rights(R_ADMIN, FALSE))
+			var/resp = tgui_input_list(usr, "Do you want to bypass the flavor text requirement?", "Confirmation", list("Yes", "No"), 1 MINUTES)
+			if(resp=="Yes")
+				message_admins("[usr] is bypassing the flavor text requirements.")
+				return TRUE
+		if(inform_client)
+			to_chat(parent, "<span class='userdanger'>Your flavor text must be longer than [FLAVORTEXT_JOIN_MINIMUM] characters!</span>")
+		return FALSE
+	return TRUE
 
 /datum/preferences/proc/ShowChoices(mob/user)
 	if(!user || !user.client)
@@ -416,6 +465,8 @@ GLOBAL_LIST_INIT(food, list(
 
 					dat += "<table width='100%'><tr><td width='17%' valign='top'>"
 					dat += "<b>Species:</b><BR><a href='?_src_=prefs;preference=species;task=input'>[pref_species.name]</a><BR>"
+					dat += "<b>Scream:</b><BR><a href='?_src_=prefs;preference=scream;task=input'>[pref_scream.name]</a><BR>"
+					dat += "<b>Laugh:</b><BR><a href='?_src_=prefs;preference=laugh;task=input'>[pref_laugh.name]</a><BR>"
 					dat += "<b>Species Naming:</b><BR><a href='?_src_=prefs;preference=custom_species;task=input'>[(features["custom_species"]) ? features["custom_species"] : "Default"]</a><BR>"
 					dat += "<b>Sprite body size:</b><BR><a href='?_src_=prefs;preference=body_size;task=input'>[(features["body_size"] * 100)]%</a> <a href='?_src_=prefs;preference=show_body_size;task=input'>[show_body_size ? "Hide preview" : "Show preview"]</a><BR>"
 					dat += "<h2>Flavor Text</h2>"
@@ -712,9 +763,54 @@ GLOBAL_LIST_INIT(food, list(
 
 					dat += "</tr></table>"
 				if(3) //Background
+					dat += "<b>THE ENTRIES AND THEIR DESCRIPTIONS ARE PLACEHOLDERS AND ARE NOT FINAL.</b><HR>"
+					dat += "<table width='100%'>"
+					dat += "<tr>"
+					dat += "<td width='21%'></td>"
+					dat += "<td width='70%'></td>"
+					dat += "<td width='9%'></td>"
+					dat += "</tr>"
+					var/even = FALSE
+					for(var/cultural_thing in list(CULTURE_CULTURE, CULTURE_LOCATION, CULTURE_FACTION))
+						even = !even
+						var/datum/cultural_info/cult
+						var/prefix
+						var/more = FALSE
+						switch(cultural_thing)
+							if(CULTURE_CULTURE)
+								cult = GLOB.culture_cultures[pref_culture]
+								prefix = "Culture"
+								more = culture_more_info
+							if(CULTURE_LOCATION)
+								cult = GLOB.culture_locations[pref_location]
+								prefix = "Location"
+								more = location_more_info
+							if(CULTURE_FACTION)
+								cult = GLOB.culture_factions[pref_faction]
+								prefix = "Faction"
+								more = faction_more_info
+						var/cult_desc
+						if(more || length(cult.description) <= 160)
+							cult_desc = cult.description
+						else
+							cult_desc = "[copytext(cult.description, 1, 160)]..."
+						dat += "<tr style='background-color:[even ? "#13171C" : "#19232C"]'>"
+						dat += "<td valign='top'><b>[prefix]:</b> <a href='?_src_=prefs;preference=cultural_info_change;info=[cultural_thing];task=input'>[cult.name]</a><font color='#AAAAAA' size=1><b>[cult.get_extra_desc(more)]</b></font></td>"
+						dat += "<td><i>[cult_desc]</i></td>"
+						dat += "<td valign='top'><a href='?_src_=prefs;preference=cultural_info_toggle;info=[cultural_thing];task=input'>[more ? "Show Less" : "Show More"]</a></td>"
+						dat += "</tr>"
+					dat += "</table>"
 					dat += "<table width='100%'><tr>"
-					dat += "<td width=33%>"
-					dat += "<center><h3>Records</h3></center>"
+					dat += "<td valign='top' width=33%>"
+					dat += "<center><h2>Languages</h2></center>"
+					dat += "<b>Linguistic points: [get_linguistic_points()]</b>"
+					for(var/language_path in languages)
+						var/datum/language/lang_datum = language_path
+						dat += "<BR>[initial(lang_datum.name)] - [languages[language_path] == LANGUAGE_SPOKEN ? "Spoken" : "Understood" ]"
+					dat += "<BR><a href='?_src_=prefs;preference=language_button;task=input'>Change Languages...</a>"
+					dat += "</td>"
+					dat += "<td valign='top' width=33%>"
+					dat += "<center><h2>Records</h2></center>"
 					dat += "<h2>General</h2>"
 					dat += "<a href='?_src_=prefs;preference=general_record;task=input'><b>Set general record</b></a><br>"
 					if(length(general_record) <= 40)
@@ -752,8 +848,8 @@ GLOBAL_LIST_INIT(food, list(
 					dat += "</td>"
 
 
-					dat += "<td width=33%>"
-					dat += "<center><h3>Information</h3></center>"
+					dat += "<td valign='top' width=33%>"
+					dat += "<center><h2>Information</h2></center>"
 					dat += "<h2>Background</h2>"
 					dat += "<a href='?_src_=prefs;preference=background_info;task=input'><b>Set background information</b></a><br>"
 					if(length(background_info) <= 40)
@@ -984,10 +1080,6 @@ GLOBAL_LIST_INIT(food, list(
 			dat += "<b>Income Updates:</b> <a href='?_src_=prefs;preference=income_pings'>[(chat_toggles & CHAT_BANKCARD) ? "Allowed" : "Muted"]</a><br>"
 			dat += "<br>"
 
-			//aphrodisiac pref
-			dat += "<b>Be affected by aphrodisiacs:</b> <a href='?_src_=prefs;preference=aphrodisiacs_pref'>[(skyrat_toggles & APHRO_PREF) ? "Enabled":"Disabled"]</a><br>"
-			dat += "<br>"
-
 			dat += "<b>FPS:</b> <a href='?_src_=prefs;preference=clientfps;task=input'>[clientfps]</a><br>"
 
 			dat += "<b>Parallax (Fancy Space):</b> <a href='?_src_=prefs;preference=parallaxdown' oncontextmenu='window.location.href=\"?_src_=prefs;preference=parallaxup\";return false;'>"
@@ -1003,6 +1095,11 @@ GLOBAL_LIST_INIT(food, list(
 				else
 					dat += "High"
 			dat += "</a><br>"
+
+			dat += "<b>Set screentip mode:</b> <a href='?_src_=prefs;preference=screentipmode'>[screentip_pref ? "Enabled" : "Disabled"]</a><br>"
+			dat += "<b>Screentip color:</b><span style='border: 1px solid #161616; background-color: [screentip_color];'>&nbsp;&nbsp;&nbsp;</span> <a href='?_src_=prefs;preference=screentipcolor'>Change</a><BR>"
+			dat += "<b>Item Hover Outlines:</b> <a href='?_src_=prefs;preference=itemoutline_pref'>[itemoutline_pref ? "Enabled" : "Disabled"]</a><br>"
+
 
 			dat += "<b>Ambient Occlusion:</b> <a href='?_src_=prefs;preference=ambientocclusion'>[ambientocclusion ? "Enabled" : "Disabled"]</a><br>"
 			dat += "<b>Fit Viewport:</b> <a href='?_src_=prefs;preference=auto_fit_viewport'>[auto_fit_viewport ? "Auto" : "Manual"]</a><br>"
@@ -1048,20 +1145,18 @@ GLOBAL_LIST_INIT(food, list(
 				src.be_special = list()
 
 
-			for (var/i in GLOB.special_roles)
-				if(is_banned_from(user.ckey, i))
-					dat += "<b>Be [capitalize(i)]:</b> <a href='?_src_=prefs;bancheck=[i]'>BANNED</a><br>"
+			for (var/special_role in GLOB.special_roles)
+				if(is_banned_from(user.ckey, special_role))
+					dat += "<b>Be [capitalize(special_role)]:</b> <a href='?_src_=prefs;bancheck=[special_role]'>BANNED</a><br>"
 				else
 					var/days_remaining = null
-					if(ispath(GLOB.special_roles[i]) && CONFIG_GET(flag/use_age_restriction_for_jobs)) //If it's a game mode antag, check if the player meets the minimum age
-						var/mode_path = GLOB.special_roles[i]
-						var/datum/game_mode/temp_mode = new mode_path
-						days_remaining = temp_mode.get_remaining_days(user.client)
-
+					if(CONFIG_GET(flag/use_age_restriction_for_jobs)) //If it's a game mode antag, check if the player meets the minimum age
+						var/days_needed = GLOB.special_roles[special_role]
+						days_remaining = user.client?.get_remaining_days(days_needed)
 					if(days_remaining)
-						dat += "<b>Be [capitalize(i)]:</b> <font color=red> \[IN [days_remaining] DAYS]</font><br>"
+						dat += "<b>Be [capitalize(special_role)]:</b> <font color=red> \[IN [days_remaining] DAYS]</font><br>"
 					else
-						dat += "<b>Be [capitalize(i)]:</b> <a href='?_src_=prefs;preference=be_special;be_special_type=[i]'>[(i in be_special) ? "Enabled" : "Disabled"]</a><br>"
+						dat += "<b>Be [capitalize(special_role)]:</b> <a href='?_src_=prefs;preference=be_special;be_special_type=[special_role]'>[(special_role in be_special) ? "Enabled" : "Disabled"]</a><br>"
 			dat += "<br>"
 			dat += "<b>Midround Antagonist:</b> <a href='?_src_=prefs;preference=allow_midround_antag'>[(toggles & MIDROUND_ANTAG) ? "Enabled" : "Disabled"]</a><br>"
 			dat += "</td></tr></table>"
@@ -1074,9 +1169,23 @@ GLOBAL_LIST_INIT(food, list(
 			dat += "<b>Play Lobby Music:</b> <a href='?_src_=prefs;preference=lobby_music'>[(toggles & SOUND_LOBBY) ? "Enabled":"Disabled"]</a><br>"
 			dat += "<b>Play End of Round Sounds:</b> <a href='?_src_=prefs;preference=endofround_sounds'>[(toggles & SOUND_ENDOFROUND) ? "Enabled":"Disabled"]</a><br>"
 			dat += "<b>Play Combat Mode Sounds:</b> <a href='?_src_=prefs;preference=combat_mode_sound'>[(toggles & SOUND_COMBATMODE) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<b>Announcement Sound Volume:</b> <a href='?_src_=prefs;preference=announcement_volume_level'>[announcement_volume]</a><br>"
 			dat += "<b>See Pull Requests:</b> <a href='?_src_=prefs;preference=pull_requests'>[(chat_toggles & CHAT_PULLR) ? "Enabled":"Disabled"]</a><br>"
 			dat += "<br>"
 
+			//aphrodisiac pref
+			dat += "<b>Be Affected by Aphrodisiacs:</b> <a href='?_src_=prefs;preference=aphrodisiacs_pref'>[(skyrat_toggles & APHRO_PREF) ? "Enabled":"Disabled"]</a><br>"
+			//cumface pref
+			dat += "<b>Be Able To Get Covered In \"Reproductive Reagent\":</b> <a href='?_src_=prefs;preference=cumfaced_pref'>[(skyrat_toggles & CUMFACE_PREF) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<br>"
+
+			//erp update prefs here
+			dat += "<b>Be able to become bimboficated:</b> <a href='?_src_=prefs;preference=bimbo_pref'>[(skyrat_toggles & BIMBO_PREF) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<b>Be affected by breast enlargement chemicals:</b> <a href='?_src_=prefs;preference=b_enlargement_pref'>[(skyrat_toggles & BREAST_ENLARGEMENT) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<b>Be affected by penis enlargement chemicals:</b> <a href='?_src_=prefs;preference=p_enlargement_pref'>[(skyrat_toggles & PENIS_ENLARGEMENT) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<b>Forced masculinity:</b> <a href='?_src_=prefs;preference=forced_m_pref'>[(skyrat_toggles & FORCED_MALE) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<b>Forced femininity:</b> <a href='?_src_=prefs;preference=forced_fem_pref'>[(skyrat_toggles & FORCED_FEM) ? "Enabled":"Disabled"]</a><br>"
+			dat += "<br>"
 
 			if(user.client)
 				if(unlock_content)
@@ -1103,7 +1212,9 @@ GLOBAL_LIST_INIT(food, list(
 				dat += "<b>Hide Dead Chat:</b> <a href = '?_src_=prefs;preference=toggle_dead_chat'>[(chat_toggles & CHAT_DEAD)?"Shown":"Hidden"]</a><br>"
 				dat += "<b>Hide Radio Messages:</b> <a href = '?_src_=prefs;preference=toggle_radio_chatter'>[(chat_toggles & CHAT_RADIO)?"Shown":"Hidden"]</a><br>"
 				dat += "<b>Hide Prayers:</b> <a href = '?_src_=prefs;preference=toggle_prayers'>[(chat_toggles & CHAT_PRAYER)?"Shown":"Hidden"]</a><br>"
+				dat += "<b>Split Admin Tabs:</b> <a href = '?_src_=prefs;preference=toggle_split_admin_tabs'>[(toggles & SPLIT_ADMIN_TABS)?"Enabled":"Disabled"]</a><br>"
 				dat += "<b>Ignore Being Summoned as Cult Ghost:</b> <a href = '?_src_=prefs;preference=toggle_ignore_cult_ghost'>[(toggles & ADMIN_IGNORE_CULT_GHOST)?"Don't Allow Being Summoned":"Allow Being Summoned"]</a><br>"
+				dat += "<b>Briefing Officer Outfit:</b> <a href = '?_src_=prefs;preference=briefoutfit;task=input'>[brief_outfit]</a><br>"
 				if(CONFIG_GET(flag/allow_admin_asaycolor))
 					dat += "<br>"
 					dat += "<b>ASAY Color:</b> <span style='border: 1px solid #161616; background-color: [asaycolor ? asaycolor : "#FF4500"];'>&nbsp;&nbsp;&nbsp;</span> <a href='?_src_=prefs;preference=asaycolor;task=input'>Change</a><br>"
@@ -1161,7 +1272,7 @@ GLOBAL_LIST_INIT(food, list(
 				dat += "<h3>[category]</h3>"
 				for (var/i in kb_categories[category])
 					var/datum/keybinding/kb = i
-					if(!length(user_binds[kb.name]))
+					if(!length(user_binds[kb.name]) || user_binds[kb.name][1] == "Unbound")
 						dat += "<label>[kb.full_name]</label> <a href ='?_src_=prefs;preference=keybindings_capture;keybinding=[kb.name];old_key=["Unbound"]'>Unbound</a>"
 						var/list/default_keys = hotkeys ? kb.hotkey_keys : kb.classic_keys
 						if(LAZYLEN(default_keys))
@@ -1201,7 +1312,7 @@ GLOBAL_LIST_INIT(food, list(
 #undef APPEARANCE_CATEGORY_COLUMN
 #undef MAX_MUTANT_ROWS
 
-/datum/preferences/proc/CaptureKeybinding(mob/user, datum/keybinding/kb, var/old_key)
+/datum/preferences/proc/CaptureKeybinding(mob/user, datum/keybinding/kb, old_key)
 	var/HTML = {"
 	<div id='focus' style="outline: 0;" tabindex=0>Keybinding: [kb.full_name]<br>[kb.description]<br><br><b>Press any key to change<br>Press ESC to clear</b></div>
 	<script>
@@ -1269,9 +1380,18 @@ GLOBAL_LIST_INIT(food, list(
 
 			HTML += "<tr bgcolor='[job.selection_color]'><td width='60%' align='right'>"
 			var/rank = job.title
+
+			//Alternate Job Titles
+			var/displayed_rank = rank
+			if(job.alt_titles.len && (rank in alt_titles_preferences))
+				displayed_rank = alt_titles_preferences[rank]
+
 			lastJob = job
 			if(is_banned_from(user.ckey, rank))
 				HTML += "<font color=red>[rank]</font></td><td><a href='?_src_=prefs;bancheck=[rank]'> BANNED</a></td></tr>"
+				continue
+			if(job.veteran_only && !is_veteran_player(user.client))
+				HTML += "<font color=red>[rank]</font></td><td><font color=red> \[NOT VETERAN\]</font></td></tr>"
 				continue
 			var/required_playtime_remaining = job.required_playtime_remaining(user.client)
 			if(required_playtime_remaining)
@@ -1287,13 +1407,21 @@ GLOBAL_LIST_INIT(food, list(
 			if(job.has_banned_species(src))
 				HTML += "<font color=red>[rank]</font></td><td><font color=red> \[BAD SPECIES\]</font></td></tr>"
 				continue
+			if(!job.has_required_languages(src))
+				HTML += "<font color=red>[rank]</font></td><td><font color=red> \[BAD LANGS\]</font></td></tr>"
+				continue
 			if((job_preferences[SSjob.overflow_role] == JP_LOW) && (rank != SSjob.overflow_role) && !is_banned_from(user.ckey, SSjob.overflow_role))
 				HTML += "<font color=orange>[rank]</font></td><td></td></tr>"
 				continue
-			if((rank in GLOB.command_positions) || (rank == "AI"))//Bold head jobs
-				HTML += "<b><span class='dark'>[rank]</span></b>"
+			var/rank_title_line = "[displayed_rank]"
+			if((rank in GLOB.command_positions) || (rank == "AI")) // Bold head jobs
+				rank_title_line = "<b>[rank_title_line]</b>"
+			if(job.alt_titles.len)
+				rank_title_line = "<a href='?_src_=prefs;preference=job;task=alt_title;job_title=[job.title]'>[rank_title_line]</a>"
 			else
-				HTML += "<span class='dark'>[rank]</span>"
+				rank_title_line = "<span class='dark'>[rank_title_line]</span>" //Make it dark if we're not adding a button for alt titles
+			HTML += rank_title_line
+
 
 			HTML += "</td><td width='40%'>"
 
@@ -1484,7 +1612,7 @@ GLOBAL_LIST_INIT(food, list(
 		if(SSquirks.quirk_points[q] > 0)
 			.++
 
-/datum/preferences/Topic(href, href_list, hsrc)			//yeah, gotta do this I guess..
+/datum/preferences/Topic(href, href_list, hsrc) //yeah, gotta do this I guess..
 	. = ..()
 	if(href_list["close"])
 		var/client/C = usr.client
@@ -1530,6 +1658,22 @@ GLOBAL_LIST_INIT(food, list(
 				SetChoices(user)
 			if("setJobLevel")
 				UpdateJobPreference(user, href_list["text"], text2num(href_list["level"]))
+
+			if("alt_title")
+				var/job_title = href_list["job_title"]
+				var/titles_list = list(job_title)
+				var/datum/job/J = SSjob.GetJob(job_title)
+				for(var/i in J.alt_titles)
+					titles_list += i
+				var/chosen_title
+				chosen_title = input(user, "Choose your job's title:", "Job Preference") as null|anything in titles_list
+				if(chosen_title)
+					if(chosen_title == job_title)
+						if(alt_titles_preferences[job_title])
+							alt_titles_preferences.Remove(job_title)
+					else
+						alt_titles_preferences[job_title] = chosen_title
+				SetChoices(user)
 			else
 				SetChoices(user)
 		return 1
@@ -1615,6 +1759,9 @@ GLOBAL_LIST_INIT(food, list(
 		return TRUE
 
 	switch(href_list["task"])
+		if("close_language")
+			user << browse(null, "window=culture_lang")
+			ShowChoices(user)
 		if("augment_style")
 			needs_update = TRUE
 			var/slot_name = href_list["slot"]
@@ -1683,7 +1830,7 @@ GLOBAL_LIST_INIT(food, list(
 			needs_update = TRUE
 			switch(href_list["preference"])
 				if("use_preset")
-					var/action = alert(user, "Are you sure you want to use a preset (This will clear your existing markings)?", "", "Yes", "No")
+					var/action = tgui_alert(user, "Are you sure you want to use a preset (This will clear your existing markings)?", "", list("Yes", "No"))
 					if(action && action == "Yes")
 						var/list/candidates = GLOB.body_marking_sets.Copy()
 						if(!mismatched_customization)
@@ -1871,7 +2018,7 @@ GLOBAL_LIST_INIT(food, list(
 					var/datum/sprite_accessory/SA = GLOB.sprite_accessories[key][mutant_bodyparts[key][MUTANT_INDEX_NAME]]
 					mutant_bodyparts[key][MUTANT_INDEX_COLOR_LIST] = SA.get_default_color(features, pref_species)
 				if("reset_all_colors")
-					var/action = alert(user, "Are you sure you want to reset all colors?", "", "Yes", "No")
+					var/action = tgui_alert(user, "Are you sure you want to reset all colors?", "", list("Yes", "No"))
 					if(action == "Yes")
 						reset_colors()
 
@@ -1941,7 +2088,7 @@ GLOBAL_LIST_INIT(food, list(
 							ghost_orbit = new_orbit
 
 				if("ghostaccs")
-					var/new_ghost_accs = alert("Do you want your ghost to show full accessories where possible, hide accessories but still use the directional sprites where possible, or also ignore the directions and stick to the default sprites?",,GHOST_ACCS_FULL_NAME, GHOST_ACCS_DIR_NAME, GHOST_ACCS_NONE_NAME)
+					var/new_ghost_accs = tgui_alert("Do you want your ghost to show full accessories where possible, hide accessories but still use the directional sprites where possible, or also ignore the directions and stick to the default sprites?", "", list(GHOST_ACCS_FULL_NAME, GHOST_ACCS_DIR_NAME, GHOST_ACCS_NONE_NAME))
 					switch(new_ghost_accs)
 						if(GHOST_ACCS_FULL_NAME)
 							ghost_accs = GHOST_ACCS_FULL
@@ -1951,7 +2098,7 @@ GLOBAL_LIST_INIT(food, list(
 							ghost_accs = GHOST_ACCS_NONE
 
 				if("ghostothers")
-					var/new_ghost_others = alert("Do you want the ghosts of others to show up as their own setting, as their default sprites or always as the default white ghost?",,GHOST_OTHERS_THEIR_SETTING_NAME, GHOST_OTHERS_DEFAULT_SPRITE_NAME, GHOST_OTHERS_SIMPLE_NAME)
+					var/new_ghost_others = tgui_alert("Do you want the ghosts of others to show up as their own setting, as their default sprites or always as the default white ghost?", "", list(GHOST_OTHERS_THEIR_SETTING_NAME, GHOST_OTHERS_DEFAULT_SPRITE_NAME, GHOST_OTHERS_SIMPLE_NAME))
 					switch(new_ghost_others)
 						if(GHOST_OTHERS_THEIR_SETTING_NAME)
 							ghost_others = GHOST_OTHERS_THEIR_SETTING
@@ -2019,13 +2166,47 @@ GLOBAL_LIST_INIT(food, list(
 					features["uses_skintones"] = !features["uses_skintones"]
 
 				if("erp_pref")
+					//SKYRAT EDIT ADDITION BEGIN - ERP_SLOT_SYSTEM
+					// User changed state of ERP pref
+					var/mob/living/carbon/human/M = user
+					var/mob/targetmob = usr
+					//SKYRAT EDIT ADDITION END
 					switch(erp_pref)
 						if("Yes")
 							erp_pref = "Ask"
+							//SKYRAT EDIT ADDITION BEGIN - ERP_SLOT_SYSTEM
+							// The user has set the ERP pref to a value other than "Yes", now we drop all items from ERP slots and can't use them
+							if(M.vagina != null)
+								M.dropItemToGround(M.vagina, TRUE, M.loc, TRUE, FALSE, TRUE)
+							if(M.anus != null)
+								M.dropItemToGround(M.anus, TRUE, M.loc, TRUE, FALSE, TRUE)
+							if(M.nipples != null)
+								M.dropItemToGround(M.nipples, TRUE, M.loc, TRUE, FALSE, TRUE)
+							if(M.penis != null)
+								M.dropItemToGround(M.penis, TRUE, M.loc, TRUE, FALSE, TRUE)
+							// If the user has an inventory of the ERP open, then we will hide it
+							if(usr.hud_used.ERP_inventory_shown && targetmob.hud_used)
+								usr.hud_used.ERP_inventory_shown = FALSE
+								usr.client.screen -= targetmob.hud_used.ERP_toggleable_inventory
+							// Find the ERP button of the inventory and make it invisible so that the user cannot interact with it
+							for(var/atom/movable/screen/human/ERP_toggle/E in targetmob.hud_used.static_inventory)
+								if(istype(E, /atom/movable/screen/human/ERP_toggle))
+									E.invisibility = 100
+							//SKYRAT EDIT ADDITION END
 						if("Ask")
 							erp_pref = "No"
 						if("No")
 							erp_pref = "Yes"
+							//SKYRAT EDIT ADDITION BEGIN - ERP_SLOT_SYSTEM
+							// User set ERP pref to "Yes", make the ERP button of the inventory visible and interactive again
+							for(var/atom/movable/screen/human/ERP_toggle/E in targetmob.hud_used.static_inventory)
+								if(istype(E, /atom/movable/screen/human/ERP_toggle))
+									E.invisibility = 0
+					// Perform standard inventory updates
+					targetmob.hud_used.hidden_inventory_update(usr)
+					user.hud_used.hidden_inventory_update(src)
+					user.hud_used.persistent_inventory_update(usr)
+					//SKYRAT EDIT ADDITION END
 				if("noncon_pref")
 					switch(noncon_pref)
 						if("Yes")
@@ -2061,33 +2242,17 @@ GLOBAL_LIST_INIT(food, list(
 
 				if("hairstyle")
 					needs_update = TRUE
-					var/new_hairstyle
-					if(gender == MALE)
-						new_hairstyle = input(user, "Choose your character's hairstyle:", "Character Preference")  as null|anything in GLOB.hairstyles_male_list
-					else if(gender == FEMALE)
-						new_hairstyle = input(user, "Choose your character's hairstyle:", "Character Preference")  as null|anything in GLOB.hairstyles_female_list
-					else
-						new_hairstyle = input(user, "Choose your character's hairstyle:", "Character Preference")  as null|anything in GLOB.hairstyles_list
+					var/new_hairstyle = input(user, "Choose your character's hairstyle:", "Character Preference")  as null|anything in GLOB.hairstyles_list
 					if(new_hairstyle)
 						hairstyle = new_hairstyle
 
 				if("next_hairstyle")
 					needs_update = TRUE
-					if (gender == MALE)
-						hairstyle = next_list_item(hairstyle, GLOB.hairstyles_male_list)
-					else if(gender == FEMALE)
-						hairstyle = next_list_item(hairstyle, GLOB.hairstyles_female_list)
-					else
-						hairstyle = next_list_item(hairstyle, GLOB.hairstyles_list)
+					hairstyle = next_list_item(hairstyle, GLOB.hairstyles_list)
 
 				if("previous_hairstyle")
 					needs_update = TRUE
-					if (gender == MALE)
-						hairstyle = previous_list_item(hairstyle, GLOB.hairstyles_male_list)
-					else if(gender == FEMALE)
-						hairstyle = previous_list_item(hairstyle, GLOB.hairstyles_female_list)
-					else
-						hairstyle = previous_list_item(hairstyle, GLOB.hairstyles_list)
+					hairstyle = previous_list_item(hairstyle, GLOB.hairstyles_list)
 
 				if("facial")
 					needs_update = TRUE
@@ -2097,42 +2262,20 @@ GLOBAL_LIST_INIT(food, list(
 
 				if("facial_hairstyle")
 					needs_update = TRUE
-					var/new_facial_hairstyle
-					if(gender == MALE)
-						new_facial_hairstyle = input(user, "Choose your character's facial-hairstyle:", "Character Preference")  as null|anything in GLOB.facial_hairstyles_male_list
-					else if(gender == FEMALE)
-						new_facial_hairstyle = input(user, "Choose your character's facial-hairstyle:", "Character Preference")  as null|anything in GLOB.facial_hairstyles_female_list
-					else
-						new_facial_hairstyle = input(user, "Choose your character's facial-hairstyle:", "Character Preference")  as null|anything in GLOB.facial_hairstyles_list
+					var/new_facial_hairstyle = input(user, "Choose your character's facial-hairstyle:", "Character Preference")  as null|anything in GLOB.facial_hairstyles_list
 					if(new_facial_hairstyle)
 						facial_hairstyle = new_facial_hairstyle
 
 				if("next_facehairstyle")
 					needs_update = TRUE
-					if (gender == MALE)
-						facial_hairstyle = next_list_item(facial_hairstyle, GLOB.facial_hairstyles_male_list)
-					else if(gender == FEMALE)
-						facial_hairstyle = next_list_item(facial_hairstyle, GLOB.facial_hairstyles_female_list)
-					else
-						facial_hairstyle = next_list_item(facial_hairstyle, GLOB.facial_hairstyles_list)
+					facial_hairstyle = next_list_item(facial_hairstyle, GLOB.facial_hairstyles_list)
 
 				if("previous_facehairstyle")
 					needs_update = TRUE
-					if (gender == MALE)
-						facial_hairstyle = previous_list_item(facial_hairstyle, GLOB.facial_hairstyles_male_list)
-					else if (gender == FEMALE)
-						facial_hairstyle = previous_list_item(facial_hairstyle, GLOB.facial_hairstyles_female_list)
-					else
-						facial_hairstyle = previous_list_item(facial_hairstyle, GLOB.facial_hairstyles_list)
+					facial_hairstyle = previous_list_item(facial_hairstyle, GLOB.facial_hairstyles_list)
 
 				if("underwear")
-					var/new_underwear
-					if(gender == MALE)
-						new_underwear = input(user, "Choose your character's underwear:", "Character Preference")  as null|anything in GLOB.underwear_m
-					else if(gender == FEMALE)
-						new_underwear = input(user, "Choose your character's underwear:", "Character Preference")  as null|anything in GLOB.underwear_f
-					else
-						new_underwear = input(user, "Choose your character's underwear:", "Character Preference")  as null|anything in GLOB.underwear_list
+					var/new_underwear = input(user, "Choose your character's underwear:", "Character Preference")  as null|anything in GLOB.underwear_list
 					if(new_underwear)
 						underwear = new_underwear
 
@@ -2156,13 +2299,7 @@ GLOBAL_LIST_INIT(food, list(
 
 				if("undershirt")
 					needs_update = TRUE
-					var/new_undershirt
-					if(gender == MALE)
-						new_undershirt = input(user, "Choose your character's undershirt:", "Character Preference") as null|anything in GLOB.undershirt_m
-					else if(gender == FEMALE)
-						new_undershirt = input(user, "Choose your character's undershirt:", "Character Preference") as null|anything in GLOB.undershirt_f
-					else
-						new_undershirt = input(user, "Choose your character's undershirt:", "Character Preference") as null|anything in GLOB.undershirt_list
+					var/new_undershirt = input(user, "Choose your character's undershirt:", "Character Preference") as null|anything in GLOB.undershirt_list
 					if(new_undershirt)
 						undershirt = new_undershirt
 
@@ -2199,6 +2336,38 @@ GLOBAL_LIST_INIT(food, list(
 							features["custom_species"] = reject_bad_name(new_name)
 					else
 						features["custom_species"] = null
+
+				if("scream")
+					var/list/available_screams = list()
+					for(var/spath in subtypesof(/datum/scream_type)) //We need to build a custom list of available screams!
+						var/datum/scream_type/scream = spath
+						if(initial(scream.restricted_species_type))
+							if(!istype(pref_species, initial(scream.restricted_species_type)))
+								continue
+						if(initial(scream.donator_only) && !GLOB.donator_list[parent.ckey] && !check_rights(R_ADMIN, FALSE))
+							continue
+						available_screams[initial(scream.name)] = spath
+					var/new_scream_id = input(user, "Choose your character's scream:", "Character Scream")  as null|anything in available_screams
+					var/datum/scream_type/scream = available_screams[new_scream_id]
+					if(scream)
+						pref_scream = new scream
+						SEND_SOUND(user, pick(pref_scream.male_screamsounds))
+
+				if("laugh")
+					var/list/available_laughs = list()
+					for(var/spath in subtypesof(/datum/laugh_type)) //We need to build a custom list of available laughs!
+						var/datum/laugh_type/laugh = spath
+						if(initial(laugh.restricted_species_type))
+							if(!istype(pref_species, initial(laugh.restricted_species_type)))
+								continue
+						if(initial(laugh.donator_only) && !GLOB.donator_list[parent.ckey] && !check_rights(R_ADMIN, FALSE))
+							continue
+						available_laughs[initial(laugh.name)] = spath
+					var/new_laugh_id = input(user, "Choose your character's laugh:", "Character Scream")  as null|anything in available_laughs
+					var/datum/laugh_type/laugh = available_laughs[new_laugh_id]
+					if(laugh)
+						pref_laugh = new laugh
+						SEND_SOUND(user, pick(pref_laugh.male_laughsounds))
 
 				if("species")
 					ShowSpeciesMenu(user)
@@ -2242,6 +2411,65 @@ GLOBAL_LIST_INIT(food, list(
 					var/new_etherealcolor = input(user, "Choose your ethereal color", "Character Preference") as null|anything in GLOB.color_list_ethereal
 					if(new_etherealcolor)
 						features["ethcolor"] = GLOB.color_list_ethereal[new_etherealcolor]
+
+				if("cultural_info_change")
+					var/thing = href_list["info"]
+					var/list/choice_list = list()
+					var/list/iteration_list
+					var/list/siphon_list
+					switch(thing)
+						if(CULTURE_CULTURE)
+							iteration_list = pref_species.cultures
+							siphon_list = GLOB.culture_cultures
+						if(CULTURE_FACTION)
+							iteration_list = pref_species.factions
+							siphon_list = GLOB.culture_factions
+						if(CULTURE_LOCATION)
+							iteration_list = pref_species.locations
+							siphon_list = GLOB.culture_locations
+					for(var/cultural_entity in iteration_list)
+						var/datum/cultural_info/CINFO = siphon_list[cultural_entity]
+						choice_list[CINFO.name] = cultural_entity
+					var/new_cultural_thing = input(user, "Choose your character's [thing]:", "Character Preference")  as null|anything in choice_list
+					if(new_cultural_thing)
+						switch(thing)
+							if(CULTURE_CULTURE)
+								pref_culture = choice_list[new_cultural_thing]
+							if(CULTURE_FACTION)
+								pref_faction = choice_list[new_cultural_thing]
+							if(CULTURE_LOCATION)
+								pref_location = choice_list[new_cultural_thing]
+						validate_languages()
+
+				if("cultural_info_toggle")
+					var/thing = href_list["info"]
+					switch(thing)
+						if(CULTURE_CULTURE)
+							culture_more_info = !culture_more_info
+						if(CULTURE_FACTION)
+							faction_more_info = !faction_more_info
+						if(CULTURE_LOCATION)
+							location_more_info = !location_more_info
+
+				if("language")
+					var/target_lang = text2path(href_list["lang"])
+					var/level = text2num(href_list["level"])
+					var/required_lang = get_required_languages()
+					if(required_lang[target_lang]) //Can't do anything to a required language
+						return TRUE
+					var/opt_langs = get_optional_languages()
+					if(!opt_langs[target_lang])
+						return TRUE
+					if(!level)
+						languages -= target_lang
+					else if(can_buy_language(target_lang, level))
+						languages[target_lang] = level
+					ShowLangMenu(user)
+					return TRUE
+
+				if("language_button")
+					ShowLangMenu(user)
+					return TRUE
 
 
 				/*if("tail_lizard")
@@ -2310,6 +2538,11 @@ GLOBAL_LIST_INIT(food, list(
 					if(new_moth_wings)
 						features["moth_wings"] = new_moth_wings
 
+				if("moth_antennae")
+					var/new_moth_antennae
+					new_moth_antennae = input(user, "Choose your character's antennae:", "Character Preference") as null|anything in GLOB.moth_antennae_list
+					if(new_moth_antennae)
+						features["moth_antennae"] = new_moth_antennae
 				if("moth_markings")
 					var/new_moth_markings
 					new_moth_markings = input(user, "Choose your character's markings:", "Character Preference") as null|anything in GLOB.moth_markings_list
@@ -2325,12 +2558,21 @@ GLOBAL_LIST_INIT(food, list(
 				if("ooccolor")
 					var/new_ooccolor = input(user, "Choose your OOC colour:", "Game Preference",ooccolor) as color|null
 					if(new_ooccolor)
-						ooccolor = new_ooccolor
+						ooccolor = sanitize_ooccolor(new_ooccolor)
 
 				if("asaycolor")
 					var/new_asaycolor = input(user, "Choose your ASAY color:", "Game Preference",asaycolor) as color|null
 					if(new_asaycolor)
-						asaycolor = new_asaycolor
+						asaycolor = sanitize_ooccolor(new_asaycolor)
+
+				if("briefoutfit")
+					var/list/valid_paths = list()
+					for(var/datum/outfit/outfit_path as anything in subtypesof(/datum/outfit))
+						valid_paths[initial(outfit_path.name)] = outfit_path
+					var/new_outfit = input(user, "Choose your briefing officer outfit:", "Game Preference") as null|anything in valid_paths
+					new_outfit = valid_paths[new_outfit]
+					if(new_outfit)
+						brief_outfit = new_outfit
 
 				if("bag")
 					var/new_backpack = input(user, "Choose your character's style of bag:", "Character Preference")  as null|anything in GLOB.backpacklist
@@ -2354,7 +2596,7 @@ GLOBAL_LIST_INIT(food, list(
 						playtime_reward_cloak = !playtime_reward_cloak
 
 				if("ai_core_icon")
-					var/ai_core_icon = input(user, "Choose your preferred AI core display screen:", "AI Core Display Screen Selection") as null|anything in GLOB.ai_core_display_screens
+					var/ai_core_icon = input(user, "Choose your preferred AI core display screen:", "AI Core Display Screen Selection") as null|anything in GLOB.ai_core_display_screens - "Portrait"
 					if(ai_core_icon)
 						preferred_ai_core_display = ai_core_icon
 
@@ -2384,8 +2626,8 @@ GLOBAL_LIST_INIT(food, list(
 				if ("clientfps")
 					var/desiredfps = input(user, "Choose your desired fps. (0 = synced with server tick rate (currently:[world.fps]))", "Character Preference", clientfps)  as null|num
 					if (!isnull(desiredfps))
-						clientfps = desiredfps
-						parent.fps = desiredfps
+						clientfps = sanitize_integer(desiredfps, -1, 1000, clientfps)
+						parent.fps = (clientfps < 0) ? RECOMMENDED_FPS : clientfps
 				if("ui")
 					var/pickedui = input(user, "Choose your UI style.", "Character Preference", UI_style)  as null|anything in sortList(GLOB.available_ui_styles)
 					if(pickedui)
@@ -2414,7 +2656,7 @@ GLOBAL_LIST_INIT(food, list(
 		else
 			switch(href_list["preference"])
 				if("reset_loadout")
-					var/action = alert(user, "Are you sure you want to reset your loadout?", "", "Yes", "No")
+					var/action = tgui_alert(user, "Are you sure you want to reset your loadout?", "", list("Yes", "No"))
 					if(action && action != "Yes")
 						return
 					loadout = list()
@@ -2425,7 +2667,7 @@ GLOBAL_LIST_INIT(food, list(
 
 				if("adv_colors")
 					if(allow_advanced_colors)
-						var/action = alert(user, "Are you sure you want to disable advanced colors (This will reset your colors back to default)?", "", "Yes", "No")
+						var/action = tgui_alert(user, "Are you sure you want to disable advanced colors (This will reset your colors back to default)?", "", list("Yes", "No"))
 						if(action && action != "Yes")
 							return
 					allow_advanced_colors = !allow_advanced_colors
@@ -2506,6 +2748,8 @@ GLOBAL_LIST_INIT(food, list(
 							full_key = "[AltMod][CtrlMod][new_key]"
 						else
 							full_key = "[AltMod][CtrlMod][ShiftMod][numpad][new_key]"
+					if(kb_name in key_bindings[full_key]) //We pressed the same key combination that was already bound here, so let's remove to re-add and re-sort.
+						key_bindings[full_key] -= kb_name
 					if(key_bindings[old_key])
 						key_bindings[old_key] -= kb_name
 						if(!length(key_bindings[old_key]))
@@ -2518,7 +2762,7 @@ GLOBAL_LIST_INIT(food, list(
 					save_preferences()
 
 				if("keybindings_reset")
-					var/choice = tgalert(user, "Would you prefer 'hotkey' or 'classic' defaults?", "Setup keybindings", "Hotkey", "Classic", "Cancel")
+					var/choice = tgui_alert(user, "Would you prefer 'hotkey' or 'classic' defaults?", "Setup keybindings", list("Hotkey", "Classic", "Cancel"))
 					if(choice == "Cancel")
 						ShowChoices(user)
 						return
@@ -2555,6 +2799,8 @@ GLOBAL_LIST_INIT(food, list(
 					user.client.deadchat()
 				if("toggle_radio_chatter")
 					user.client.toggle_hear_radio()
+				if("toggle_split_admin_tabs")
+					toggles ^= SPLIT_ADMIN_TABS
 				if("toggle_prayers")
 					user.client.toggleprayers()
 				if("toggle_deadmin_always")
@@ -2589,12 +2835,9 @@ GLOBAL_LIST_INIT(food, list(
 					persistent_scars = !persistent_scars
 
 				if("clear_scars")
-					to_chat(user, "<span class='notice'>All scar slots cleared. Please save character to confirm.</span>")
-					scars_list["1"] = ""
-					scars_list["2"] = ""
-					scars_list["3"] = ""
-					scars_list["4"] = ""
-					scars_list["5"] = ""
+					var/path = "data/player_saves/[user.ckey[1]]/[user.ckey]/scars.sav"
+					fdel(path)
+					to_chat(user, "<span class='notice'>All scar slots cleared.</span>")
 
 				if("hear_midis")
 					toggles ^= SOUND_MIDI
@@ -2611,6 +2854,11 @@ GLOBAL_LIST_INIT(food, list(
 
 				if("combat_mode_sound")
 					toggles ^= SOUND_COMBATMODE
+
+				if("announcement_volume_level")
+					var/new_annoumcenent_volume = clamp(input(user, "Please enter the new announcement volume(1-100)", "New volume setting", 0) as num|null, 1, 100)
+					if(new_annoumcenent_volume)
+						announcement_volume = new_annoumcenent_volume
 
 				if("ghost_ears")
 					chat_toggles ^= CHAT_GHOSTEARS
@@ -2649,6 +2897,26 @@ GLOBAL_LIST_INIT(food, list(
 				if("aphrodisiacs_pref")
 					skyrat_toggles ^= APHRO_PREF
 
+				//cumface pref
+				if("cumfaced_pref")
+					skyrat_toggles ^= CUMFACE_PREF
+
+				//erp update prefs coming riiight here
+				if("bimbo_pref")
+					skyrat_toggles ^= BIMBO_PREF
+
+				if("b_enlargement_pref")
+					skyrat_toggles ^= BREAST_ENLARGEMENT
+
+				if("p_enlargement_pref")
+					skyrat_toggles ^= PENIS_ENLARGEMENT
+
+				if("forced_m_pref")
+					skyrat_toggles ^= FORCED_MALE
+
+				if("forced_fem_pref")
+					skyrat_toggles ^= FORCED_FEM
+
 				if("parallaxup")
 					parallax = WRAP(parallax + 1, PARALLAX_INSANE, PARALLAX_DISABLE + 1)
 					if (parent && parent.mob && parent.mob.hud_used)
@@ -2659,9 +2927,20 @@ GLOBAL_LIST_INIT(food, list(
 					if (parent && parent.mob && parent.mob.hud_used)
 						parent.mob.hud_used.update_parallax_pref(parent.mob)
 
+				if("screentipmode")
+					screentip_pref = !screentip_pref
+
+				if("screentipcolor")
+					var/new_screentipcolor = input(user, "Choose your screentip color:", "Character Preference", screentip_color) as color|null
+					if(new_screentipcolor)
+						screentip_color = sanitize_ooccolor(new_screentipcolor)
+
+				if("itemoutline_pref")
+					itemoutline_pref = !itemoutline_pref
+
 				if("ambientocclusion")
 					ambientocclusion = !ambientocclusion
-					if(parent && parent.screen && parent.screen.len)
+					if(parent?.screen && parent.screen.len)
 						var/atom/movable/screen/plane_master/game_world/PM = locate(/atom/movable/screen/plane_master/game_world) in parent.screen
 						PM.backdrop(parent.mob)
 
@@ -2713,6 +2992,10 @@ GLOBAL_LIST_INIT(food, list(
 						save_character()
 					else
 						needs_update = TRUE
+
+					if(istype(parent.mob, /mob/dead/new_player)) //is this shitcode? probably - I DONT CAREEE~
+						var/mob/dead/new_player/NP = parent.mob
+						NP.show_titlescreen()
 
 				if("tab")
 					if (href_list["tab"])
@@ -2780,7 +3063,7 @@ GLOBAL_LIST_INIT(food, list(
 		if(CONFIG_GET(flag/humans_need_surnames) && (pref_species.id == "human"))
 			var/firstspace = findtext(real_name, " ")
 			var/name_length = length(real_name)
-			if(!firstspace)	//we need a surname
+			if(!firstspace) //we need a surname
 				real_name += " [pick(GLOB.last_names)]"
 			else if(firstspace == name_length)
 				real_name += "[pick(GLOB.last_names)]"
@@ -2803,7 +3086,6 @@ GLOBAL_LIST_INIT(food, list(
 		organ_eyes.old_eye_color = eye_color
 	character.hair_color = hair_color
 	character.facial_hair_color = facial_hair_color
-
 	character.skin_tone = skin_tone
 	character.hairstyle = hairstyle
 	character.facial_hairstyle = facial_hairstyle
@@ -2817,6 +3099,9 @@ GLOBAL_LIST_INIT(food, list(
 	character.backpack = backpack
 
 	character.jumpsuit_style = jumpsuit_style
+
+	character.selected_scream = pref_scream
+	character.selected_laugh = pref_laugh
 
 	var/datum/species/chosen_species
 	chosen_species = pref_species.type
@@ -3038,3 +3323,141 @@ GLOBAL_LIST_INIT(food, list(
 /datum/preferences/proc/validate_quirks()
 	if(GetQuirkBalance() < 0)
 		all_quirks = list()
+
+/datum/preferences/proc/get_linguistic_points()
+	var/points = LINGUISTIC_POINTS_DEFAULT
+	for(var/langpath in languages)
+		points -= languages[langpath]
+	return points
+
+/datum/preferences/proc/get_required_languages()
+	var/list/lang_list = list()
+	for(var/cultural_thing in list(CULTURE_CULTURE, CULTURE_LOCATION, CULTURE_FACTION))
+		var/datum/cultural_info/cult
+		switch(cultural_thing)
+			if(CULTURE_CULTURE)
+				cult = GLOB.culture_cultures[pref_culture]
+			if(CULTURE_LOCATION)
+				cult = GLOB.culture_locations[pref_location]
+			if(CULTURE_FACTION)
+				cult = GLOB.culture_factions[pref_faction]
+		if(cult.required_lang)
+			lang_list[cult.required_lang] = TRUE
+	return lang_list
+
+/datum/preferences/proc/get_optional_languages()
+	var/list/lang_list = list()
+	for(var/lang in pref_species.learnable_languages)
+		lang_list[lang] = TRUE
+	for(var/cultural_thing in list(CULTURE_CULTURE, CULTURE_LOCATION, CULTURE_FACTION))
+		var/datum/cultural_info/cult
+		switch(cultural_thing)
+			if(CULTURE_CULTURE)
+				cult = GLOB.culture_cultures[pref_culture]
+			if(CULTURE_LOCATION)
+				cult = GLOB.culture_locations[pref_location]
+			if(CULTURE_FACTION)
+				cult = GLOB.culture_factions[pref_faction]
+		if(cult.additional_langs)
+			for(var/langtype in cult.additional_langs)
+				lang_list[langtype] = TRUE
+	return lang_list
+
+/datum/preferences/proc/get_available_languages()
+	var/list/lang_list = get_required_languages()
+	for(var/lang_key in get_optional_languages())
+		lang_list[lang_key] = TRUE
+	return lang_list
+
+/datum/preferences/proc/validate_languages()
+	var/list/opt_langs = get_optional_languages()
+	var/list/req_langs = get_required_languages()
+	for(var/langkey in languages)
+		if(!opt_langs[langkey] && !req_langs[langkey])
+			languages -= langkey
+	for(var/req_lang in req_langs)
+		if(!languages[req_lang])
+			languages[req_lang] = LANGUAGE_SPOKEN
+	var/left_points = get_linguistic_points()
+	//If we're below 0 points somehow, remove all optional languages
+	if(left_points < 0)
+		for(var/lang in languages)
+			if(!req_langs[lang])
+				languages -= lang
+
+/datum/preferences/proc/can_buy_language(language_path, level)
+	var/points = get_linguistic_points()
+	if(languages[language_path])
+		points += languages[language_path]
+	if(points < level)
+		return FALSE
+	return TRUE
+
+//Whenever we switch a species, we'll try to get common if we can to not confuse anyone
+/datum/preferences/proc/try_get_common_language()
+	var/list/langs = get_available_languages()
+	if(langs[/datum/language/common])
+		languages[/datum/language/common] = LANGUAGE_SPOKEN
+
+/datum/preferences/proc/ShowLangMenu(mob/user)
+	var/list/dat = list()
+	dat += "<center><b>Choose your languages:</b></center><br>"
+	dat += "Availability of the languages to choose from depends on your background. If you can't unlearn one, it means it is required for your background."
+	dat += "<BR><center><a href='?_src_=prefs;task=close_language'>Done</a></center>"
+	dat += "<hr>"
+	var/current_ling_points = get_linguistic_points()
+	dat += "<b>Linguistic Points remaining: [current_ling_points]</b>"
+	dat += "<table width='100%' align='center'><tr>"
+	dat += "<td width=10%></td>"
+	dat += "<td width=60%></td>"
+	dat += "<td width=10%></td>"
+	dat += "<td width=10%></td>"
+	dat += "<td width=10%></td>"
+	dat += "</tr>"
+	var/list/avail_langs = get_available_languages()
+	var/list/req_langs = get_required_languages()
+	var/even = TRUE
+	var/background_cl
+	for(var/lang_path in avail_langs)
+		even = !even
+		var/datum/language/lang_datum = lang_path
+		var/required = (req_langs[lang_path] ? TRUE : FALSE)
+		if(even)
+			background_cl = (required ? "#7A5A00" : "#17191C")
+		else
+			background_cl = (required ? "#856200" : "#23273C")
+		var/language_skill = 0
+		if(languages[lang_path])
+			language_skill = languages[lang_path]
+		var/unlearn_button
+		if(language_skill && !required)
+			unlearn_button = "<a href='?_src_=prefs;lang=[lang_path];level=0;preference=language;task=input'>Unlearn</a>"
+		else
+			unlearn_button = "<span class='linkOff'>Unlearn</span>"
+		var/understood_button
+		if(languages[lang_path])
+			//Has a href in case you want to downgrade from spoken to understood
+			understood_button = "<a class='linkOn' href='?_src_=prefs;lang=[lang_path];level=1;preference=language;task=input'>Understood</a>"
+		else if(can_buy_language(lang_path, LANGUAGE_UNDERSTOOD))
+			understood_button = "<a href='?_src_=prefs;lang=[lang_path];level=1;preference=language;task=input'>Understood</a>"
+		else
+			understood_button = "<span class='linkOff'>Understood</span>"
+		var/spoken_button
+		if(languages[lang_path] >= LANGUAGE_SPOKEN)
+			spoken_button = "<a class='linkOn' href='?_src_=prefs;lang=[lang_path];level=2;preference=language;task=input'>Spoken</a>"
+		else if(can_buy_language(lang_path, LANGUAGE_SPOKEN))
+			spoken_button = "<a href='?_src_=prefs;lang=[lang_path];level=2;preference=language;task=input'>Spoken</a>"
+		else
+			spoken_button = "<span class='linkOff'>Spoken</span>"
+		dat += "<tr style='background-color: [background_cl]'>"
+		dat += "<td><b>[initial(lang_datum.name)]</b></td>"
+		dat += "<td><i>[initial(lang_datum.desc)]</i></td>"
+		dat += "<td>[unlearn_button]</td>"
+		dat += "<td>[understood_button]</td>"
+		dat += "<td>[spoken_button]</td>"
+		dat += "</tr>"
+	dat += "<table>"
+	var/datum/browser/popup = new(user, "culture_lang", "<div align='center'>Language Choice</div>", 900, 600)
+	popup.set_window_options("can_close=0")
+	popup.set_content(dat.Join())
+	popup.open(FALSE)
